@@ -103,13 +103,13 @@ int main(int argc, char* argv[])
     // Create NSF emulator
     nsf_t* nsf = nsf_create();
 
-    nsf_enable_apu_sniffing(nsf, true, ld_apu_read_rom, ld_apu_write_reg, (void*)&ld);
-
     nsf_start_emu(nsf, reader, 1000, SAMPLE_RATE, OVERSAMPLE_RATE);
-    nesbus_dump_handlers(nsf->bus);
-    nsf_init_song(nsf, song);
+    nsf_enable_apu_sniffing(nsf, true, ld_apu_read_rom, ld_apu_write_reg, (void*)&ld);
     nsf_enable_slience_detect(nsf, 1000);
-    
+    nesbus_dump_handlers(nsf->bus);
+
+    nsf_init_song(nsf, song);
+  
     unsigned long nsamples = 0;
     int16_t sample;
     while (!nsf_silence_detected(nsf) && (nsamples < NSF_SAMPLE_LIMIT))
