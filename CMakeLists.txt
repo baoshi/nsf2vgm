@@ -14,3 +14,13 @@ add_executable(nsfdump
 	nsfreader_file.c
 	nsfdump.c)
 
+add_executable(nsftime
+	blip_buf.c
+	nesapu.c
+	nescpu.c
+	nesbus.c
+	nesfloat.c
+	nsf.c
+	nsfreader_file.c
+	nsftime.c
+)
