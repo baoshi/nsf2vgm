@@ -8,7 +8,7 @@
 #define SAMPLE_RATE 44100
 #define OVERSAMPLE_RATE 1
 #define NSF_CACHE_SIZE 4096
-#define NSF_SAMPLE_LIMIT (200 * SAMPLE_RATE) // 100 seconds
+#define NSF_SAMPLE_LIMIT (400 * SAMPLE_RATE) // 100 seconds
 
 #define NSF_MAX_RECORDS  10000000
 
@@ -61,9 +61,13 @@ int main(int argc, char* argv[])
         nsfrip_finish_rip(rip);
         // no more ripping so we can read rom later without being ripped
         nsf_enable_apu_sniffing(nsf, false, NULL, NULL, NULL);
-        if (nsfrip_find_loop(rip, 1000))
+        // if play is finished because of silence detected, no need to find loop
+        if (!nsf_silence_detected(nsf))
         {
-            nsfrip_trim_loop(rip);
+            if (nsfrip_find_loop(rip, 1000))
+            {
+                nsfrip_trim_loop(rip);
+            }
         }
         // If APU uses rom samples, dump it
         if (rip->rom_hi > rip->rom_lo)

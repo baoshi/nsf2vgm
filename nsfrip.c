@@ -135,18 +135,21 @@ static inline bool compare_records(const nsfrip_record_t *a, const nsfrip_record
         ...
         records[loop_start + loop_length - 1] == records[loop_start + loop_length + loop_length - 1]
  */
-static inline bool is_loop(nsfrip_record_t *records, unsigned long length, unsigned long loop_start, unsigned long loop_length)
+static inline bool is_loop(nsfrip_record_t *records, unsigned long length, unsigned long loop_start, unsigned long loop_length, bool allow_truncate)
 {
     unsigned long p1 = loop_start;
     unsigned long p2 = loop_start + loop_length;
-    if (p2 + loop_length > length) return false;
-    while (loop_length != 0)
+    for (p1 = loop_start; p1 < loop_start + loop_length; ++p1)
     {
-        if (!compare_records(&records[p1], &records[p2]))
-            return false;
-        ++p1;
-        ++p2;
-        --loop_length;
+        p2 = p1 + loop_length;
+        if (p2 < length)
+        {
+            if (!compare_records(&records[p1], &records[p2])) return false;
+        }
+        else
+        {
+            if (allow_truncate) break;
+        }
     }
     return true;
 }
@@ -169,11 +172,38 @@ bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
     {
         for (loop_length = min_length; loop_length < length / 2; ++loop_length)
         {
-            if (is_loop(records, length, start, loop_length))
+            if (is_loop(records, length, start, loop_length, false))
             {
-                rip->loop_start_idx = start;
-                rip->loop_end_idx = start + loop_length - 1;
-                return true;
+                // it is possible that the loop pattern is AAAAB, when we found a loop,
+                // test if it loops all the way to the end
+                bool isrealloop = true;
+                unsigned long temp;
+                if (start + loop_length + loop_length < length)
+                {
+                    temp = start + loop_length;
+                    while (temp + loop_length < length)
+                    {
+                        if (!is_loop(records, length, temp, loop_length, true))
+                        {
+                            isrealloop = false;
+                            break;
+                        }
+                        temp = temp + loop_length;
+                    }
+                    if (isrealloop)
+                    {
+                        rip->loop_start_idx = start;
+                        rip->loop_end_idx = start + loop_length - 1;
+                        return true;
+                    }
+                    start = start + loop_length;
+                }
+                else
+                {
+                    rip->loop_start_idx = start;
+                    rip->loop_end_idx = start + loop_length - 1;
+                    return true;
+                }
             }
         }
     }
