@@ -21,7 +21,7 @@ extern "C" {
 #define NSF_ERR_OUTOFMEMORY     -2
 #define NSF_ERR_UNSUPPORTED     -3
 #define NSF_ERR_NOT_INITIALIZED -4
-
+#define NSF_ERR_DUMPFAILED      -5
 
 
 // Spec: https://wiki.nesdev.org/w/index.php/NSF
@@ -113,6 +113,7 @@ int nsf_get_samples(nsf_t *ctx, uint16_t count, int16_t* samples);
 int nsf_enable_slience_detect(nsf_t *ctx, uint32_t ms);
 bool nsf_silence_detected(nsf_t *ctx);
 void nsf_enable_apu_sniffing(nsf_t *c, bool enable, apu_read_rom_cb read, apu_write_reg_cb write, void *param);
+int nsf_dump_rom(nsf_t *ctx, int16_t addr, int16_t len, uint8_t *buf);
 
 #ifdef __cplusplus
 }

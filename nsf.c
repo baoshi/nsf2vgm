@@ -654,3 +654,14 @@ void nsf_enable_apu_sniffing(nsf_t *c, bool enable, apu_read_rom_cb read, apu_wr
     c->sniff_write_apu_reg = write;
     c->sniff_param = param;
 }
+
+
+// Dump nsf rom
+int nsf_dump_rom(nsf_t *c, int16_t addr, int16_t len, uint8_t *buf)
+{
+    for (int16_t i = 0; i < len; ++i)
+    {
+        buf[i] = nesbus_read(c->bus, addr + i, BUS_OWNER_EXT);
+    }
+    return NSF_ERR_SUCCESS;
+}

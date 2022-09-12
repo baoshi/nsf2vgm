@@ -10,6 +10,7 @@ extern "C" {
 
 #define BUS_OWNER_CPU   1
 #define BUS_OWNER_APU   2
+#define BUS_OWNER_EXT   3
 
 typedef struct nesbus_read_handler_s
 {

@@ -15,7 +15,7 @@ nsfrip_t * nsfrip_create(unsigned long max_records)
     if (rip)
     {
         memset(rip, 0, sizeof(nsfrip_t));
-        rip->records = malloc(max_records * sizeof(rip_record_t));
+        rip->records = malloc(max_records * sizeof(nsfrip_record_t));
         if (!rip->records)
         {
             free(rip);
@@ -23,11 +23,11 @@ nsfrip_t * nsfrip_create(unsigned long max_records)
         }
         else
         {
-            rip->samples = 0;
+            rip->total_samples = 0;
             rip->rom_lo = 0xffff;
             rip->rom_hi = 0x0000;
             rip->wait_samples = 0;
-            rip->record_idx = 0;
+            rip->records_len = 0;
             rip->max_records = max_records;
         }
     }
@@ -50,15 +50,35 @@ void nsfrip_destroy(nsfrip_t *rip)
 
 void nsfrip_add_sample(nsfrip_t *rip)
 {
-    ++(rip->samples);
     ++(rip->wait_samples);
 }
 
 
+void nsfrip_finish_rip(nsfrip_t *rip)
+{
+    // add those samples in waiting
+    if (rip->records_len < rip->max_records)
+    {
+        while (rip->wait_samples > 65535)
+        {
+            rip->total_samples += 65535;
+            rip->wait_samples -= 65535;
+            rip->records[rip->records_len].wait_samples = 65535;
+            rip->records[rip->records_len].reg_ops = 0;
+            ++(rip->records_len);    
+        }
+        rip->total_samples += rip->wait_samples;
+        rip->records[rip->records_len].wait_samples = rip->wait_samples;
+        rip->wait_samples = 0;
+        rip->records[rip->records_len].reg_ops = 0;
+        ++(rip->records_len);
+    }
+}
+
 void nsfrip_dump(nsfrip_t *rip, unsigned long records)
 {
     unsigned long samples = 0;
-    if (records == 0) records = rip->record_idx;
+    if (records == 0) records = rip->records_len;
     for (unsigned long i = 0; i < records; ++i)
     {
         uint32_t record = rip->records[i].reg_ops;
@@ -82,17 +102,26 @@ void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param)
 {
     nsfrip_t *rip = (nsfrip_t *)param;
     uint32_t record;
-    if (rip->record_idx < rip->max_records)
+    if (rip->records_len < rip->max_records)
     {
-        rip->records[rip->record_idx].wait_samples = rip->wait_samples;
+        while (rip->wait_samples > 65535)
+        {
+            rip->total_samples += 65535;
+            rip->wait_samples -= 65535;
+            rip->records[rip->records_len].wait_samples = 65535;
+            rip->records[rip->records_len].reg_ops = 0;
+            ++(rip->records_len);    
+        }
+        rip->total_samples += rip->wait_samples;
+        rip->records[rip->records_len].wait_samples = rip->wait_samples;
         rip->wait_samples = 0;
-        rip->records[rip->record_idx].reg_ops = RECORD_WRITE_REG | (addr << 8) | val;
-        ++(rip->record_idx);
+        rip->records[rip->records_len].reg_ops = RECORD_WRITE_REG | (addr << 8) | val;
+        ++(rip->records_len);
     }
 }
 
 
-static inline bool compare_records(const rip_record_t *a, const rip_record_t *b)
+static inline bool compare_records(const nsfrip_record_t *a, const nsfrip_record_t *b)
 {
     return (a->reg_ops == b->reg_ops);
 }
@@ -106,7 +135,7 @@ static inline bool compare_records(const rip_record_t *a, const rip_record_t *b)
         ...
         records[loop_start + loop_length - 1] == records[loop_start + loop_length + loop_length - 1]
  */
-static inline bool is_loop(rip_record_t *records, unsigned long length, unsigned long loop_start, unsigned long loop_length)
+static inline bool is_loop(nsfrip_record_t *records, unsigned long length, unsigned long loop_start, unsigned long loop_length)
 {
     unsigned long p1 = loop_start;
     unsigned long p2 = loop_start + loop_length;
@@ -125,8 +154,8 @@ static inline bool is_loop(rip_record_t *records, unsigned long length, unsigned
 
 bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
 {
-    rip_record_t *records = rip->records;
-    unsigned long length = rip->record_idx;
+    nsfrip_record_t *records = rip->records;
+    unsigned long length = rip->records_len;
     /*
         For a series of length, find a loop_start and loop_length > min_length,
         such that records[loop_start                  ] == records[loop_start + loop_length                  ]
@@ -155,5 +184,12 @@ bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
 void nsfrip_trim_loop(nsfrip_t *rip)
 {
     if (rip->loop_end_idx != 0)
-        rip->record_idx = rip->loop_end_idx;
+        rip->records_len = rip->loop_end_idx;
+    unsigned long samples = 0;
+    for (unsigned int i = 0; i < rip->records_len; ++i)
+    {
+        uint32_t wait = rip->records[i].wait_samples;
+        samples += wait;
+    }
+    rip->total_samples = samples;
 }

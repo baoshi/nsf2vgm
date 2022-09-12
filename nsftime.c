@@ -3,11 +3,12 @@
 #include "nsf.h"
 #include "nsfreader_file.h"
 #include "nsfrip.h"
+#include "rip2vgm.h"
 
 #define SAMPLE_RATE 44100
 #define OVERSAMPLE_RATE 1
 #define NSF_CACHE_SIZE 4096
-#define NSF_SAMPLE_LIMIT (100 * SAMPLE_RATE) // 100 seconds
+#define NSF_SAMPLE_LIMIT (200 * SAMPLE_RATE) // 100 seconds
 
 #define NSF_MAX_RECORDS  10000000
 
@@ -22,6 +23,8 @@ int main(int argc, char* argv[])
     nsfreader_t *reader = NULL;
     nsfrip_t *rip = NULL;
     nsf_t *nsf = NULL;
+    uint8_t *rom = NULL;
+    uint16_t rom_len = 0;
     
     do
     {
@@ -55,13 +58,30 @@ int main(int argc, char* argv[])
             nsfrip_add_sample(rip);
             ++nsamples;
         }
+        nsfrip_finish_rip(rip);
+        // no more ripping so we can read rom later without being ripped
+        nsf_enable_apu_sniffing(nsf, false, NULL, NULL, NULL);
         if (nsfrip_find_loop(rip, 1000))
         {
-            printf("Found loop\n");
             nsfrip_trim_loop(rip);
         }
+        // If APU uses rom samples, dump it
+        if (rip->rom_hi > rip->rom_lo)
+        {
+            rom_len = rip->rom_hi - rip->rom_lo + 1;
+            rom = malloc(rom_len);
+            if (NULL == rom)
+            {
+                printf("Allocate ROM failed\n");
+                break;
+            }
+            nsf_dump_rom(nsf, rip->rom_lo, rom_len, rom);
+        }
+        // Convert VGM
+        rip2vgm(rip, rom, rom_len, NULL, "test.vgm");
     } while (0);
 
+    if (rom) free(rom);
     if (nsf) nsf_destroy(nsf);
     if (rip) nsfrip_destroy(rip);
     if (reader) nfr_destroy(reader);

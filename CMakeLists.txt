@@ -23,5 +23,6 @@ add_executable(nsftime
 	nsf.c
 	nsfreader_file.c
 	nsfrip.c
+	rip2vgm.c
 	nsftime.c
 )
