@@ -22,5 +22,6 @@ add_executable(nsftime
 	nesfloat.c
 	nsf.c
 	nsfreader_file.c
+	nsfrip.c
 	nsftime.c
 )
