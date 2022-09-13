@@ -10,7 +10,7 @@
       "currentDir": "${workspaceRoot}",
       "args": [
         "test/kage.nsf",
-        "10"
+        "9"
       ]
     },
     {

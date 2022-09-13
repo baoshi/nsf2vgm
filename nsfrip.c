@@ -102,24 +102,26 @@ void nsfrip_apu_read_rom(uint16_t addr, void *param)
 void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param)
 {
     nsfrip_t *rip = (nsfrip_t *)param;
-    uint32_t record;
     if (rip->records_len < rip->max_records)
     {
         while (rip->wait_samples > 65535)
         {
             rip->total_samples += 65535;
             rip->wait_samples -= 65535;
-            rip->records[rip->records_len].time_stamp = rip->total_samples;
             rip->records[rip->records_len].wait_samples = 65535;
             rip->records[rip->records_len].reg_ops = 0;
-            ++(rip->records_len);    
+            ++(rip->records_len);
+            if (rip->records_len < rip->max_records)
+                break;
         }
-        rip->total_samples += rip->wait_samples;
-        rip->records[rip->records_len].wait_samples = rip->wait_samples;
-        rip->wait_samples = 0;
-        rip->records[rip->records_len].time_stamp = rip->total_samples;
-        rip->records[rip->records_len].reg_ops = RECORD_WRITE_REG | (addr << 8) | val;
-        ++(rip->records_len);
+        if (rip->records_len < rip->max_records)
+        {
+            rip->total_samples += rip->wait_samples;
+            rip->records[rip->records_len].wait_samples = rip->wait_samples;
+            rip->wait_samples = 0;
+            rip->records[rip->records_len].reg_ops = RECORD_WRITE_REG | (addr << 8) | val;
+            ++(rip->records_len);
+        }
     }
 }
 
@@ -214,6 +216,7 @@ bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
 }
 
 
+// Trim records after loop end
 void nsfrip_trim_loop(nsfrip_t *rip)
 {
     if (rip->loop_end_idx != 0)
@@ -225,4 +228,26 @@ void nsfrip_trim_loop(nsfrip_t *rip)
         samples += wait;
     }
     rip->total_samples = samples;
+}
+
+
+// If the rip was terminated because of silence detected, there will 
+// wait records at the end, trim those to 1 sample
+void nsfrip_trim_silence(nsfrip_t* rip, uint32_t samples)
+{
+    unsigned long index = rip->records_len - 1;
+    uint32_t total_waits = 0;
+
+    while (rip->records[index].reg_ops == 0)
+    {
+        total_waits += rip->records[index].wait_samples;
+        --index;
+    }
+    ++index;
+    if (total_waits > samples)
+    {
+        rip->records[index].wait_samples = total_waits - samples;
+        rip->total_samples -= samples;
+        rip->records_len = index + 1;
+    }
 }

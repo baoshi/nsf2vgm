@@ -8,7 +8,6 @@ extern "C" {
 
 typedef struct nsfrip_record_s
 {
-    float time_stamp;
     uint32_t wait_samples;
     uint32_t reg_ops;
 } nsfrip_record_t;
@@ -34,6 +33,7 @@ void nsfrip_finish_rip(nsfrip_t *rip);
 void nsfrip_dump(nsfrip_t *rip, unsigned long records);
 bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length);
 void nsfrip_trim_loop(nsfrip_t *rip);
+void nsfrip_trim_silence(nsfrip_t *rip, uint32_t samples);
 
 // For use with nsfbus 
 void nsfrip_apu_read_rom(uint16_t addr, void *param);

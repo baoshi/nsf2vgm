@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
         }
         nsf_start_emu(nsf, reader, 1000, SAMPLE_RATE, OVERSAMPLE_RATE);
         nsf_enable_apu_sniffing(nsf, true, nsfrip_apu_read_rom, nsfrip_apu_write_reg, (void*)rip);
-        nsf_enable_slience_detect(nsf, 1000);
+        nsf_enable_slience_detect(nsf, 2000);
         nsf_init_song(nsf, song);
         unsigned long nsamples = 0;
         int16_t sample;
@@ -69,6 +69,10 @@ int main(int argc, char* argv[])
             {
                 nsfrip_trim_loop(rip);
             }
+        }
+        else
+        {
+            nsfrip_trim_silence(rip, 2 * 44100);
         }
         // If APU uses rom samples, dump it
         if (rip->rom_hi > rip->rom_lo)
