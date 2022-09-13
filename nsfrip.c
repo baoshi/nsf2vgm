@@ -73,7 +73,6 @@ void nsfrip_finish_rip(nsfrip_t *rip)
         rip->records[rip->records_len].reg_ops = 0;
         ++(rip->records_len);
     }
-    --(rip->records_len);   // extra 1 added above, take it out
 }
 
 
@@ -163,8 +162,12 @@ static inline bool is_loop(nsfrip_record_t *records, unsigned long length, unsig
 bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
 {
     nsfrip_record_t *records = rip->records;
-    unsigned long length = rip->records_len;
+    // The last ripped record is a pure wait record added in nsfrip_finish_rip. It does not contain register operation.
+    // Loop finding shall exclude last record.
+    unsigned long length = rip->records_len - 1;
+
     unsigned long start, max_length, loop_length;
+
     for (start = 0; start < length / 2; ++start)
     {
         max_length = (length - start) / 2;
