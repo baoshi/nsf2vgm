@@ -168,7 +168,7 @@ bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
     for (start = 0; start < length / 2; ++start)
     {
         max_length = (length - start) / 2;
-        for (loop_length = max_length; loop_length > min_length; --loop_length)
+        for (loop_length = min_length; loop_length < max_length; ++loop_length)
         {
             if (is_loop(records, length, start, loop_length, false))
             {
