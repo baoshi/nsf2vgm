@@ -5,7 +5,6 @@
 #include "nsfrip.h"
 
 
-#define RECORD_WAIT_SAMPLES 0x61000000
 #define RECORD_WRITE_REG    0xb4000000
 
 
@@ -57,23 +56,26 @@ void nsfrip_add_sample(nsfrip_t *rip)
 void nsfrip_finish_rip(nsfrip_t *rip)
 {
     // add those samples in waiting
+    while ((rip->wait_samples > 65535) && (rip->records_len < rip->max_records))
+    {
+        rip->total_samples += 65535;
+        rip->wait_samples -= 65535;
+        rip->records[rip->records_len].wait_samples = 65535;
+        rip->records[rip->records_len].reg_ops = 0;
+        ++(rip->records_len);
+    }
     if (rip->records_len < rip->max_records)
     {
-        while (rip->wait_samples > 65535)
-        {
-            rip->total_samples += 65535;
-            rip->wait_samples -= 65535;
-            rip->records[rip->records_len].wait_samples = 65535;
-            rip->records[rip->records_len].reg_ops = 0;
-            ++(rip->records_len);    
-        }
+        
         rip->total_samples += rip->wait_samples;
         rip->records[rip->records_len].wait_samples = rip->wait_samples;
         rip->wait_samples = 0;
         rip->records[rip->records_len].reg_ops = 0;
         ++(rip->records_len);
     }
+    --(rip->records_len);   // extra 1 added above, take it out
 }
+
 
 void nsfrip_dump(nsfrip_t *rip, unsigned long records)
 {
@@ -84,7 +86,7 @@ void nsfrip_dump(nsfrip_t *rip, unsigned long records)
         uint32_t record = rip->records[i].reg_ops;
         int16_t addr = (record >> 8) & 0xffff;
         uint8_t val = record & 0xff;
-        printf("%04u: Write $%04x : %02x\n", rip->records[i].wait_samples, addr, val);
+        printf("%06u: Write $%04x : %02x\n", i, addr, val);
     }
 }
 
@@ -108,6 +110,7 @@ void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param)
         {
             rip->total_samples += 65535;
             rip->wait_samples -= 65535;
+            rip->records[rip->records_len].time_stamp = rip->total_samples;
             rip->records[rip->records_len].wait_samples = 65535;
             rip->records[rip->records_len].reg_ops = 0;
             ++(rip->records_len);    
@@ -115,6 +118,7 @@ void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param)
         rip->total_samples += rip->wait_samples;
         rip->records[rip->records_len].wait_samples = rip->wait_samples;
         rip->wait_samples = 0;
+        rip->records[rip->records_len].time_stamp = rip->total_samples;
         rip->records[rip->records_len].reg_ops = RECORD_WRITE_REG | (addr << 8) | val;
         ++(rip->records_len);
     }
@@ -144,7 +148,8 @@ static inline bool is_loop(nsfrip_record_t *records, unsigned long length, unsig
         p2 = p1 + loop_length;
         if (p2 < length)
         {
-            if (!compare_records(&records[p1], &records[p2])) return false;
+            if (!compare_records(&records[p1], &records[p2])) 
+                return false;
         }
         else
         {
@@ -159,36 +164,28 @@ bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
 {
     nsfrip_record_t *records = rip->records;
     unsigned long length = rip->records_len;
-    /*
-        For a series of length, find a loop_start and loop_length > min_length,
-        such that records[loop_start                  ] == records[loop_start + loop_length                  ]
-                  records[loop_start + 1              ] == records[loop_start + loop_length + 1              ]
-                  records[loop_start + 2              ] == records[loop_start + loop_length + 2              ]
-                  ...
-                  records[loop_start + loop_length - 1] == records[loop_start + loop_length + loop_length - 1]
-    */
-    unsigned long start, loop_length;
+    unsigned long start, max_length, loop_length;
     for (start = 0; start < length / 2; ++start)
     {
-        for (loop_length = min_length; loop_length < length / 2; ++loop_length)
+        max_length = (length - start) / 2;
+        for (loop_length = max_length; loop_length > min_length; --loop_length)
         {
             if (is_loop(records, length, start, loop_length, false))
             {
-                // it is possible that the loop pattern is AAAAB, when we found a loop,
-                // test if it loops all the way to the end
+                // it is possible that the loop ls like ABC ABC DEFG DEFG
+                // When we found a loop, test if it loops all the way to the end.
                 bool isrealloop = true;
-                unsigned long temp;
                 if (start + loop_length + loop_length < length)
                 {
-                    temp = start + loop_length;
-                    while (temp + loop_length < length)
+                    unsigned long temp_start = start + loop_length;
+                    while (temp_start + loop_length < length)
                     {
-                        if (!is_loop(records, length, temp, loop_length, true))
+                        if (!is_loop(records, length, temp_start, loop_length, true))
                         {
                             isrealloop = false;
                             break;
                         }
-                        temp = temp + loop_length;
+                        temp_start = temp_start + loop_length;
                     }
                     if (isrealloop)
                     {
@@ -196,7 +193,10 @@ bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
                         rip->loop_end_idx = start + loop_length - 1;
                         return true;
                     }
-                    start = start + loop_length;
+                    else
+                    {
+                        start = temp_start; // Skip ABC
+                    }
                 }
                 else
                 {

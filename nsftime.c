@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
         nsfrip_finish_rip(rip);
         // no more ripping so we can read rom later without being ripped
         nsf_enable_apu_sniffing(nsf, false, NULL, NULL, NULL);
+        //nsfrip_dump(rip, 0);
         // if play is finished because of silence detected, no need to find loop
         if (!nsf_silence_detected(nsf))
         {

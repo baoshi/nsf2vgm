@@ -8,7 +8,21 @@
       "projectTarget": "nsftime.exe",
       "name": "nsftime.exe",
       "currentDir": "${workspaceRoot}",
-      "args": [ "test/superc.nsf", "1" ]
+      "args": [
+        "test/kage.nsf",
+        "7"
+      ]
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "nsfdump.exe",
+      "name": "nsfdump.exe",
+      "currentDir": "${workspaceRoot}",
+      "args": [
+        "test/kage.nsf",
+        "10"
+      ]
     }
   ]
 }

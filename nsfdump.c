@@ -6,7 +6,7 @@
 #define SAMPLE_RATE 44100
 #define OVERSAMPLE_RATE 1
 #define NSF_CACHE_SIZE 4096
-#define NSF_SAMPLE_LIMIT (100 * SAMPLE_RATE) // 100 seconds
+#define NSF_SAMPLE_LIMIT (500 * SAMPLE_RATE) // 100 seconds
 
 
 int main(int argc, char* argv[])

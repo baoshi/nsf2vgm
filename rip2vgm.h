@@ -8,7 +8,7 @@ extern "C" {
 
 typedef struct vgm_meta_s
 {
-
+    char *name;
 } vgm_meta_t;
 
 

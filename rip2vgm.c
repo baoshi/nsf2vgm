@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "rip2vgm.h"
 
@@ -94,7 +95,7 @@ typedef struct vgm_header_s vgm_header_t;
 
 int rip2vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t *info, char const *vgm)
 {
-    int r;
+    int r = RIP2VGM_ERR_SUCCESS;
     uint8_t *stream = NULL;
     FILE *fd = NULL;
     do

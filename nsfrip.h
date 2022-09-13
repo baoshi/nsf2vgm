@@ -1,5 +1,6 @@
 #pragma once
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -7,6 +8,7 @@ extern "C" {
 
 typedef struct nsfrip_record_s
 {
+    float time_stamp;
     uint32_t wait_samples;
     uint32_t reg_ops;
 } nsfrip_record_t;
