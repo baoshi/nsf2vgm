@@ -1,0 +1,4 @@
+[submodule "lib/cJSON/src"]
+	path = lib/cJSON/src
+	url = https://github.com/DaveGamble/cJSON
+	branch = master
