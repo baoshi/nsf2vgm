@@ -23,6 +23,17 @@
         "test/kage.nsf",
         "10"
       ]
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "nsf2vgm.exe",
+      "name": "nsf2vgm.exe",
+      "currentDir": "${workspaceRoot}",
+      "args": [
+        "test/kage.nsf",
+        "1"
+      ]
     }
   ]
 }
