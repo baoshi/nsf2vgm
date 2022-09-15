@@ -11,6 +11,7 @@ endif()
 
 
 add_subdirectory(lib/cJSON)
+add_subdirectory(lib/cwalk)
 
 add_executable(nsfdump 
 	blip_buf.c
@@ -38,4 +39,4 @@ add_executable(nsftime
 add_executable(nsf2vgm
 	nsf2vgm.c
 )
-target_link_libraries(nsf2vgm cJSON)
+target_link_libraries(nsf2vgm cJSON cwalk)

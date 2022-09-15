@@ -1,17 +1,22 @@
 {
   "nsf_file": "kage.nsf",
+  "out_dir" : "Kage",
   "game_name": "Shadow of Ninja",
-  "authors": [ "Iku Mizutani", "Koichi Yamanishi" ],
-  "release_date": "1990-08-10",
+  "authors": "Iku Mizutani, Koichi Yamanishi",
+  "release_date": "1990/08/10",
   "tracks": [
     {
-      "index": "0",
+      "index": "1",
       "name": "Opening",
-      "notes": ""
+      "file_name": "01.vgm"
     },
     {
-      "index": "1",
+      "index": "2",
       "name": "Stage Start"
+    },
+    {
+      "index": "3",
+      "file_name": ""
     }
   ]
 }

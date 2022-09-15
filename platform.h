@@ -1,28 +1,29 @@
 #pragma once
 
 
-#ifdef __GNUC__
+#if defined(__GNUC__)
 # define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
+#elif defined(_WIN32)
+# ifdef _MSC_VER
+#  define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
+# else
+#  error "MSVC required on Windows"
+# endif
 #endif
 
-#ifdef _MSC_VER
-# define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
-#endif
-
-#include<stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef _WIN32
+# include <direct.h>
+# define getcwd _getcwd
+#else
+# include <unistd.h>
 #endif
 
+#define MAX_PATH_NAME   256
 
 #define NSF_PRINTF(...) printf(__VA_ARGS__)
 #define NSF_PRINTDBG(...) fprintf(stderr, __VA_ARGS__)
 #define NSF_PRINTERR(...) fprintf(stderr, __VA_ARGS__)
 
-
-#ifdef __cplusplus
-}
-#endif
