@@ -4,3 +4,6 @@
 [submodule "lib/cJSON/cJSON"]
 	path = lib/cJSON/cJSON
 	url = https://github.com/DaveGamble/cJSON.git
+[submodule "lib/rogueutil/rogueutil"]
+	path = lib/rogueutil/rogueutil
+	url = https://github.com/sakhmatd/rogueutil.git

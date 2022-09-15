@@ -2,32 +2,106 @@
 #include <string.h>
 #include <cJSON.h>
 #include <cwalk.h>
+#include <rogueutil.h>
 #include "platform.h"
 #include "nsf.h"
+#include "nsfreader_file.h"
+#include "nsfrip.h"
 
 #define NSF2VGM_ERR_SUCCESS         0
 #define NSF2VGM_ERR_OUTOFMEMORY     -1
 #define NSF2VGM_ERR_IOERROR         -2
 #define NSF2VGM_ERR_INVALIDCONFIG   -3
-
+#define NSF2VGM_ERR_INVALIDNSF      -4
 
 #define MAX_GAME_NAME       64
 #define MAX_AUTHOR_NAME     128
 #define MAX_RELEASE_DATE    16
 #define MAX_TRACK_NAME      32
 
+#define NSF_SAMPLE_RATE             44100
+#define NSF_CACHE_SIZE              4096
+#define NSF_DEFAULT_SAMPLE_LIMIT    (300 * SAMPLE_RATE) // 100 seconds
+#define NSF_DEFAULT_MAX_RECORDS     10000000
+
+
+#define PRINT_ERR(...) colorPrint(RED, -1, __VA_ARGS__)
+#define PRINT_INF(...) colorPrint(BLUE, -1, __VA_ARGS__)
+
+
 
 static void usage()
 {
-    printf("Usage: nsf2vgm config.json [track no]\n");
+    PRINT_ERR("Usage: nsf2vgm config.json [track no]\n");
 }
 
 
+typedef struct convert_param_s
+{
+    const char *config_dir;             // directory where the json configuration is
+    const char *nsf_path;               // absolute path of NSF file
+    int index;                          // song index
+    const char *track_name;
+    const char *track_file_name;
+    const char *override_out_dir;       // output dir if specified
+    const char *override_game_name;     // game name if specified
+    const char *override_authors;       // authors if specfiied
+    const char *override_release_date;  // game release data if specified
+} convert_param_t;
+ 
+
+static int convert_nsf(convert_param_t *cp)
+{
+    int r = NSF2VGM_ERR_SUCCESS, t;
+
+    char out_dir[MAX_PATH_NAME] = { '\0' };
+    char game_name[MAX_GAME_NAME] = { '\0' };
+    char authors[MAX_AUTHOR_NAME] = { '\0' };
+    char release_date[MAX_RELEASE_DATE] = { '\0' };
+
+    nsfreader_t *reader = NULL;
+    nsfrip_t *rip = NULL;
+    nsf_t *nsf = NULL;
+    uint8_t *rom = NULL;
+    uint16_t rom_len = 0;
+
+    do
+    {
+        reader = nfr_create(nsf_path, NSF_CACHE_SIZE);
+        if (NULL == reader)
+        {
+            r = NSF2VGM_ERR_IOERROR;
+            PRINT_ERR("Failed to open NSF file \"%s\"\n", nsf_path);
+            break;
+        }
+        nsf = nsf_create();
+        if (!nsf)
+        {
+            r = NSF2VGM_ERR_OUTOFMEMORY;
+            PRINT_ERR("Out of memory\n");
+            break;
+        }
+        t = nsf_start_emu(nsf, reader, 10, NSF_SAMPLE_RATE, 1);
+        if (NSF_ERR_SUCCESS != t)
+        {
+            r = NSF2VGM_ERR_INVALIDNSF;
+            PRINT_ERR("File \"%s\" is not a valid NSF file\n", nsf_path);
+            break;
+        }
+        PRINT_INF("Converting \"%s\"\n", nsf_path);
+
+    } while (0);
+    if (rom) free(rom);
+    if (nsf) nsf_destroy(nsf);
+    if (rip) nsfrip_destroy(rip);
+    if (reader) nfr_destroy(reader);
+    return r;
+}
 
 
 int process_config(const char *cf, int select)
 {
-    int r = 0;
+    int r = NSF2VGM_ERR_SUCCESS;
     
     char base_dir[MAX_PATH_NAME] = { '\0' };
     char nsf_path[MAX_PATH_NAME] = { '\0' };
@@ -193,6 +267,17 @@ int process_config(const char *cf, int select)
                         track_file_name[MAX_PATH_NAME - 1] = '\0';
                     }
                     NSF_PRINTDBG("Track name \"%s\", save as \"%s\"\n", track_name, track_file_name);
+                    convert_param_t params = { 0 };
+                    params.config_dir = base_dir;
+                    params.nsf_path = nsf_path;
+                    params.index = index;
+                    params.track_name = track_name;
+                    params.track_file_name = track_file_name;
+                    if (override_out_dir[0]) params.override_out_dir = override_out_dir;
+                    if (override_game_name[0]) params.override_game_name = override_game_name;
+                    if (override_authors[0]) params.override_authors = override_authors;
+                    if (override_release_date[0]) params.override_release_date = override_release_date;
+                    convert_nsf(&params);
                 }
             }
         }
@@ -209,11 +294,15 @@ int process_config(const char *cf, int select)
 int main(int argc, const char *argv[])
 {
     int r = 0;
+    
+    saveDefaultColor();
+
     if (argc < 2)
     {
         usage();
         return -1;
     }
+
     const char *cf = argv[1];   // config file
     char config[MAX_PATH_NAME];
     // If path of config file itself is relative, extend it to absolute path so we can resolve
@@ -232,5 +321,8 @@ int main(int argc, const char *argv[])
     
     r = process_config(cf, select);
   
+    anykey(NULL);
+	resetColor();
+
     return r;
 }

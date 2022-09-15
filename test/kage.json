@@ -6,7 +6,7 @@
   "release_date": "1990/08/10",
   "tracks": [
     {
-      "index": "1",
+      "index": 1,
       "name": "Opening",
       "file_name": "01.vgm"
     },

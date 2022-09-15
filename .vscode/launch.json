@@ -55,7 +55,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "args": ["test/kage.json", "0"],
-            "externalConsole": false
+            "console":"externalTerminal"
         }
     ]
 }

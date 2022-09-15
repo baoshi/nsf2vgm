@@ -12,6 +12,7 @@ endif()
 
 add_subdirectory(lib/cJSON)
 add_subdirectory(lib/cwalk)
+add_subdirectory(lib/rogueutil)
 
 add_executable(nsfdump 
 	blip_buf.c
@@ -37,6 +38,15 @@ add_executable(nsftime
 )
 
 add_executable(nsf2vgm
+	blip_buf.c
+	nesapu.c
+	nescpu.c
+	nesbus.c
+	nesfloat.c
+	nsf.c
+	nsfreader_file.c
+	nsfrip.c
+	nsfrip_vgm.c
 	nsf2vgm.c
 )
-target_link_libraries(nsf2vgm cJSON cwalk)
+target_link_libraries(nsf2vgm cJSON cwalk rogueutil)
