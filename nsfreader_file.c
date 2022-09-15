@@ -47,7 +47,7 @@ static uint32_t read(nsfreader_t* self, uint8_t* out, uint32_t offset, uint32_t 
 #endif
     fseek(ctx->fd, offset, SEEK_SET);
     ctx->cache_offset = offset;
-    ctx->cache_data_length = fread(ctx->cache, 1, ctx->cache_size, ctx->fd);
+    ctx->cache_data_length = (int32_t)fread(ctx->cache, 1, ctx->cache_size, ctx->fd);
     if (ctx->cache_data_length > 0)
     {
         *out = ctx->cache[0];

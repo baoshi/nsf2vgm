@@ -2,13 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "rip2vgm.h"
-
-#ifdef _MSC_VER
-# define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
-# else
-#define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
-# endif
+#include "platform.h"
+#include "nsfrip.h"
 
 
 PACK(struct vgm_header_s
@@ -88,12 +83,7 @@ PACK(struct vgm_header_s
 typedef struct vgm_header_s vgm_header_t;
 
 
-
-#define RIP2VGM_ERR_SUCCESS         0
-#define RIP2VGM_ERR_OUTOFMEMORY     -1
-#define RIP2VGM_ERR_FILEIO          -2
-
-int rip2vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t *info, char const *vgm)
+int nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t *info, char const *vgm)
 {
     int r = RIP2VGM_ERR_SUCCESS;
     uint8_t *stream = NULL;

@@ -24,7 +24,7 @@
             ]
         },
         {
-            "name": "GDB",
+            "name": "Linux GDB",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -47,5 +47,14 @@
                 }
             ]
         },
+        {
+            "name": "Windows MSVC Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "args": ["test/kage.nsf", "10"],
+        }
     ]
 }

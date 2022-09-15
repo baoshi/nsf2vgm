@@ -4,6 +4,12 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 project(nsf2vgm VERSION 0.1.0)
 
+
+if (WIN32)
+	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
+
 add_subdirectory(lib/cJSON)
 
 add_executable(nsfdump 
@@ -25,7 +31,7 @@ add_executable(nsftime
 	nsf.c
 	nsfreader_file.c
 	nsfrip.c
-	rip2vgm.c
+	nsfrip_vgm.c
 	nsftime.c
 )
 

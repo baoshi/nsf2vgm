@@ -40,6 +40,21 @@ void nsfrip_apu_read_rom(uint16_t addr, void *param);
 void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param);
 
 
+// From nsfrip to VGM
+
+#define RIP2VGM_ERR_SUCCESS         0
+#define RIP2VGM_ERR_OUTOFMEMORY     -1
+#define RIP2VGM_ERR_FILEIO          -2
+
+typedef struct vgm_meta_s
+{
+    char *name;
+} vgm_meta_t;
+
+int  nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t *info, char const *vgm);
+
+
+
 #ifdef __cplusplus
 }
 #endif

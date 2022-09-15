@@ -3,7 +3,7 @@
 #include "nsf.h"
 #include "nsfreader_file.h"
 #include "nsfrip.h"
-#include "rip2vgm.h"
+
 
 #define SAMPLE_RATE 44100
 #define OVERSAMPLE_RATE 1
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
             nsf_dump_rom(nsf, rip->rom_lo, rom_len, rom);
         }
         // Convert VGM
-        rip2vgm(rip, rom, rom_len, NULL, "test.vgm");
+        nsfrip_export_vgm(rip, rom, rom_len, NULL, "test.vgm");
     } while (0);
 
     if (rom) free(rom);
