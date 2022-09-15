@@ -2,3 +2,6 @@
 	path = lib/cJSON/src
 	url = https://github.com/DaveGamble/cJSON
 	branch = master
+[submodule "lib/cwalk"]
+	path = lib/cwalk
+	url = https://github.com/likle/cwalk.git
