@@ -22,7 +22,7 @@ typedef struct nfr_ctx_s
 } nfr_t;
 
 
-static uint32_t read(nsfreader_t *self, uint8_t *out, uint32_t offset, uint32_t length)
+static uint32_t nfr_read(nsfreader_t *self, uint8_t *out, uint32_t offset, uint32_t length)
 {
     // Simplified implementation here considering most of the time we're requesting 1 byte
     nfr_t *ctx = (nfr_t*)self;
@@ -59,7 +59,7 @@ static uint32_t read(nsfreader_t *self, uint8_t *out, uint32_t offset, uint32_t 
 }
 
 
-static uint32_t size(nsfreader_t *self)
+static uint32_t nfr_size(nsfreader_t *self)
 {
     nfr_t *ctx = (nfr_t*)self;
     if (ctx && ctx->fd)
@@ -95,8 +95,8 @@ nsfreader_t * nfr_create(const char *fn, uint32_t cache_size)
     ctx->cache_offset = 0;
 
     ctx->super.self = (nsfreader_t*)ctx;
-    ctx->super.read = read;
-    ctx->super.size = size;
+    ctx->super.read = nfr_read;
+    ctx->super.size = nfr_size;
 
 #ifdef NFR_MEASURE_CACHE_PERFORMACE
     ctx->cache_hit = 0;

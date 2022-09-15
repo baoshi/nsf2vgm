@@ -86,7 +86,7 @@ void nsfrip_dump(nsfrip_t *rip, unsigned long records)
         uint32_t record = rip->records[i].reg_ops;
         int16_t addr = (record >> 8) & 0xffff;
         uint8_t val = record & 0xff;
-        NSF_PRINTF("%06u: Write $%04x : %02x\n", i, addr, val);
+        NSF_PRINTF("%06lu: Write $%04x : %02x\n", i, addr, val);
     }
 }
 
