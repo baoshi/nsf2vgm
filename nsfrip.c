@@ -11,14 +11,14 @@
 
 nsfrip_t * nsfrip_create(unsigned long max_records)
 {
-    nsfrip_t *rip = malloc(sizeof(nsfrip_t));
+    nsfrip_t *rip = NSF_MALLOC(sizeof(nsfrip_t));
     if (rip)
     {
         memset(rip, 0, sizeof(nsfrip_t));
-        rip->records = malloc(max_records * sizeof(nsfrip_record_t));
+        rip->records = NSF_MALLOC(max_records * sizeof(nsfrip_record_t));
         if (!rip->records)
         {
-            free(rip);
+            NSF_FREE(rip);
             rip = NULL;
         }
         else
@@ -41,9 +41,9 @@ void nsfrip_destroy(nsfrip_t *rip)
     {
         if (rip->records)
         {
-            free(rip->records);
+            NSF_FREE(rip->records);
         }
-        free(rip);
+        NSF_FREE(rip);
     }
 }
 
@@ -86,7 +86,7 @@ void nsfrip_dump(nsfrip_t *rip, unsigned long records)
         uint32_t record = rip->records[i].reg_ops;
         int16_t addr = (record >> 8) & 0xffff;
         uint8_t val = record & 0xff;
-        printf("%06u: Write $%04x : %02x\n", i, addr, val);
+        NSF_PRINTF("%06u: Write $%04x : %02x\n", i, addr, val);
     }
 }
 

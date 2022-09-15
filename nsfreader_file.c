@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "platform.h"
 #include "nsfreader_file.h"
 
 
@@ -80,11 +81,11 @@ nsfreader_t* nfr_create(const char* fn, uint32_t cache_size)
     if (0 == fd)
         goto create_exit;
 
-    ctx = (nfr_t*)malloc(sizeof(nfr_t));
+    ctx = (nfr_t*)NSF_MALLOC(sizeof(nfr_t));
     if (0 == ctx)
         goto create_exit;
 
-    ctx->cache = (uint8_t*)malloc(cache_size);
+    ctx->cache = (uint8_t*)NSF_MALLOC(cache_size);
     if (0 == ctx->cache)
         goto create_exit;
 
@@ -106,9 +107,9 @@ nsfreader_t* nfr_create(const char* fn, uint32_t cache_size)
 
 create_exit:
     if (ctx && ctx->cache)
-        free(ctx->cache);
+        NSF_FREE(ctx->cache);
     if (ctx)
-        free(ctx);
+        NSF_FREE(ctx);
     if (fd)
         fclose(fd);
     return 0;
@@ -121,10 +122,10 @@ void nfr_destroy(nsfreader_t* nfr)
     if (0 == ctx)
         return;
     if (ctx->cache)
-        free(ctx->cache);
+        NSF_FREE(ctx->cache);
     if (ctx->fd)
         fclose(ctx->fd);
-    free(ctx);
+    NSF_FREE(ctx);
 }
 
 
@@ -133,7 +134,7 @@ void nfr_destroy(nsfreader_t* nfr)
 void nfr_show_cache_status(nsfreader_t* nfr)
 {
     nfr_t* ctx = (nfr_t*)nfr;
-    printf("Cache Status: (%llu/%llu), hit %.1f%%\n", ctx->cache_hit, ctx->cache_hit + ctx->cache_miss, (ctx->cache_hit * 100.0f) / (ctx->cache_hit + ctx->cache_miss));
+    NSF_PRINTF("Cache Status: (%llu/%llu), hit %.1f%%\n", ctx->cache_hit, ctx->cache_hit + ctx->cache_miss, (ctx->cache_hit * 100.0f) / (ctx->cache_hit + ctx->cache_miss));
 }
 
 #endif

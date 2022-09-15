@@ -30,13 +30,6 @@
 # define NSF_PRINTERR(...) fprintf(stderr, __VA_ARGS__)
 # define NSF_MALLOC malloc
 # define NSF_FREE free
-#elif defined(PICO_BOARD)
-#include "my_debug.h"
-#include "my_mem.h"
-# define NSF_PRINTF(...) MY_LOGD(__VA_ARGS__)
-# define NSF_PRINTERR(...) MY_LOGE(__VA_ARGS__)
-# define NSF_MALLOC MY_MALLOC
-# define NSF_FREE MY_FREE
 #endif
 
 
