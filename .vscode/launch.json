@@ -54,7 +54,7 @@
             "program": "${command:cmake.launchTargetPath}",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "args": ["test/kage.nsf", "10"],
+            "args": ["test/kage.json", "1"],
         }
     ]
 }

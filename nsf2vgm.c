@@ -1,5 +1,6 @@
 #include <stdio.h>
-#include "cJSON.h"
+#include <cJSON.h>
+#include "platform.h"
 
 
 void usage()
@@ -15,17 +16,18 @@ int main(int argc, const char *argv[])
         usage();
         return -1;
     }
-    char* json = argv[1];
+    const char *cf = argv[1]; // config file
     FILE *jf = NULL;
 
     do
     {
-        jf = fopen(argv[1], "rb");
+        jf = fopen(cf, "rb");
         if (NULL == jf)
         {
-            fprintf(stderr, "Failed to open \"%s\"\n", json);
+            fprintf(stderr, "Failed to open \"%s\"\n", cf);
             break;
         }
+
 
     } while (0);
     if (jf != NULL) fclose(jf);

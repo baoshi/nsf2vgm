@@ -10,8 +10,8 @@ typedef struct nfr_ctx_s
     // super class
     nsfreader_t super;
     // Private fields
-    FILE* fd;
-    uint8_t* cache;
+    FILE *fd;
+    uint8_t *cache;
     uint32_t cache_size;
     uint32_t cache_data_length;
     uint32_t cache_offset;
@@ -22,10 +22,10 @@ typedef struct nfr_ctx_s
 } nfr_t;
 
 
-static uint32_t read(nsfreader_t* self, uint8_t* out, uint32_t offset, uint32_t length)
+static uint32_t read(nsfreader_t *self, uint8_t *out, uint32_t offset, uint32_t length)
 {
     // Simplified implementation here considering most of the time we're requesting 1 byte
-    nfr_t* ctx = (nfr_t*)self;
+    nfr_t *ctx = (nfr_t*)self;
     if (length == 0)
         return 0;
     if (length > 1)
@@ -59,9 +59,9 @@ static uint32_t read(nsfreader_t* self, uint8_t* out, uint32_t offset, uint32_t 
 }
 
 
-static uint32_t size(nsfreader_t* self)
+static uint32_t size(nsfreader_t *self)
 {
-    nfr_t* ctx = (nfr_t*)self;
+    nfr_t *ctx = (nfr_t*)self;
     if (ctx && ctx->fd)
     {
         fseek(ctx->fd, 0, SEEK_END);
@@ -72,20 +72,20 @@ static uint32_t size(nsfreader_t* self)
 }
 
 
-nsfreader_t* nfr_create(const char* fn, uint32_t cache_size)
+nsfreader_t * nfr_create(const char *fn, uint32_t cache_size)
 {
-    FILE* fd = 0;
-    nfr_t* ctx = 0;
+    FILE *fd = 0;
+    nfr_t *ctx = 0;
 
     fd = fopen(fn, "rb");
     if (0 == fd)
         goto create_exit;
 
-    ctx = (nfr_t*)NSF_MALLOC(sizeof(nfr_t));
+    ctx = (nfr_t*)malloc(sizeof(nfr_t));
     if (0 == ctx)
         goto create_exit;
 
-    ctx->cache = (uint8_t*)NSF_MALLOC(cache_size);
+    ctx->cache = (uint8_t*)malloc(cache_size);
     if (0 == ctx->cache)
         goto create_exit;
 
@@ -107,33 +107,33 @@ nsfreader_t* nfr_create(const char* fn, uint32_t cache_size)
 
 create_exit:
     if (ctx && ctx->cache)
-        NSF_FREE(ctx->cache);
+        free(ctx->cache);
     if (ctx)
-        NSF_FREE(ctx);
+        free(ctx);
     if (fd)
         fclose(fd);
     return 0;
 }
 
 
-void nfr_destroy(nsfreader_t* nfr)
+void nfr_destroy(nsfreader_t *nfr)
 {
-    nfr_t* ctx = (nfr_t*)nfr;
+    nfr_t *ctx = (nfr_t*)nfr;
     if (0 == ctx)
         return;
     if (ctx->cache)
-        NSF_FREE(ctx->cache);
+        free(ctx->cache);
     if (ctx->fd)
         fclose(ctx->fd);
-    NSF_FREE(ctx);
+    free(ctx);
 }
 
 
 #ifdef NFR_MEASURE_CACHE_PERFORMACE
 
-void nfr_show_cache_status(nsfreader_t* nfr)
+void nfr_show_cache_status(nsfreader_t *nfr)
 {
-    nfr_t* ctx = (nfr_t*)nfr;
+    nfr_t *ctx = (nfr_t*)nfr;
     NSF_PRINTF("Cache Status: (%llu/%llu), hit %.1f%%\n", ctx->cache_hit, ctx->cache_hit + ctx->cache_miss, (ctx->cache_hit * 100.0f) / (ctx->cache_hit + ctx->cache_miss));
 }
 

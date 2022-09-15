@@ -97,7 +97,7 @@ int nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t 
         stream_len = rom_len + 9;   // NES APU RAM 0x67 0x66 0xc2 ss ss ss ss (ll ll rom)
         // each record in rip is 4 bytes, maximum expand to 2 VGM commands, records_len * 8 should be enough
         stream_len += rip->records_len * 8;
-        stream = NSF_MALLOC(stream_len);
+        stream = malloc(stream_len);
         if (NULL == stream)
         {
             r = RIP2VGM_ERR_OUTOFMEMORY;
@@ -199,6 +199,6 @@ int nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t 
         fd = NULL;
     } while (0);
     if (fd) fclose(fd);
-    if (stream) NSF_FREE(stream);
+    if (stream) free(stream);
     return r;
 }

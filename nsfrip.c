@@ -11,14 +11,14 @@
 
 nsfrip_t * nsfrip_create(unsigned long max_records)
 {
-    nsfrip_t *rip = NSF_MALLOC(sizeof(nsfrip_t));
+    nsfrip_t *rip = malloc(sizeof(nsfrip_t));
     if (rip)
     {
         memset(rip, 0, sizeof(nsfrip_t));
-        rip->records = NSF_MALLOC(max_records * sizeof(nsfrip_record_t));
+        rip->records = malloc(max_records * sizeof(nsfrip_record_t));
         if (!rip->records)
         {
-            NSF_FREE(rip);
+            free(rip);
             rip = NULL;
         }
         else
@@ -41,9 +41,9 @@ void nsfrip_destroy(nsfrip_t *rip)
     {
         if (rip->records)
         {
-            NSF_FREE(rip->records);
+            free(rip->records);
         }
-        NSF_FREE(rip);
+        free(rip);
     }
 }
 
