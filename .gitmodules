@@ -1,3 +1,6 @@
 [submodule "lib/cwalk"]
 	path = lib/cwalk
 	url = https://github.com/likle/cwalk.git
+[submodule "lib/cJSON/cJSON"]
+	path = lib/cJSON/cJSON
+	url = https://github.com/DaveGamble/cJSON.git
