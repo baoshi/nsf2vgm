@@ -1,4 +1,4 @@
-set(CJSON_SRC src)
+set(CJSON_SRC cJSON)
 
 add_library(cJSON INTERFACE)
 
