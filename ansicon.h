@@ -38,6 +38,12 @@ static const char * ANSI_BACKGROUND_WHITE   = "\033[47m";
 
 int ansicon_setup(void);
 int ansicon_restore(void);
+void ansicon_show_cursor(void);
+void ansicon_hide_cursor(void);
+void ansicon_print_string(const char *color, const char *str);
+int ansicon_set_string(const char *color, const char *str);
+void ansicon_move_cursor_right(int pos);
+int ansicon_getch_non_blocking(void);
 
 #ifdef __cplusplus
 }

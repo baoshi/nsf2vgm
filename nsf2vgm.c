@@ -10,11 +10,12 @@
 #include "nsfrip.h"
 
 #define NSF2VGM_ERR_SUCCESS             0
-#define NSF2VGM_ERR_OUTOFMEMORY         -1
-#define NSF2VGM_ERR_IOERROR             -2
-#define NSF2VGM_ERR_INVALIDCONFIG       -3
-#define NSF2VGM_ERR_INVALIDNSF          -4
-#define NSF2VGM_ERR_INSUFFICIENT_DATA   -5
+#define NSF2VGM_ERR_CANCELLED           -1
+#define NSF2VGM_ERR_OUTOFMEMORY         -2
+#define NSF2VGM_ERR_IOERROR             -3
+#define NSF2VGM_ERR_INVALIDCONFIG       -4
+#define NSF2VGM_ERR_INVALIDNSF          -5
+#define NSF2VGM_ERR_INSUFFICIENT_DATA   -6
 
 #define MAX_GAME_NAME       64
 #define MAX_AUTHOR_NAME     128
@@ -23,8 +24,11 @@
 
 #define NSF_SAMPLE_RATE             44100
 #define NSF_CACHE_SIZE              4096
-#define NSF_DEFAULT_SAMPLE_LIMIT    (300 * SAMPLE_RATE) // 100 seconds
-#define NSF_DEFAULT_MAX_RECORDS     10000000
+
+#define NSFRIP_DEFAULT_MAX_RECORDS      100000
+#define NSFRIP_DEFAULT_MAX_SLIENCE      2
+#define NSFRIP_DEFAULT_MAX_LENGTH       300
+#define NSFRIP_DEFAULT_MIN_LOOP_RECORDS 1000
 
 
 #define PRINT_ERR(...) do { printf("%s", ANSI_RED); printf(__VA_ARGS__); } while (0)
@@ -49,6 +53,10 @@ typedef struct convert_param_s
     const char *override_game_name;     // game name if specified
     const char *override_authors;       // authors if specfiied
     const char *override_release_date;  // game release data if specified
+    unsigned long max_length;
+    unsigned long max_records;
+    unsigned long max_silence;
+    bool loop_detection;
 } convert_param_t;
  
 
@@ -67,6 +75,12 @@ static int convert_nsf(convert_param_t *cp)
     nsf_t *nsf = NULL;
     uint8_t *rom = NULL;
     uint16_t rom_len = 0;
+    unsigned long max_records = NSFRIP_DEFAULT_MAX_RECORDS;
+    unsigned long max_silence = NSFRIP_DEFAULT_MAX_SLIENCE;
+    unsigned long max_samples = NSFRIP_DEFAULT_MAX_LENGTH * NSF_SAMPLE_RATE;
+    unsigned long min_loop_records = NSFRIP_DEFAULT_MIN_LOOP_RECORDS;
+    bool loop_detection = true;
+    bool cancelled = false;
 
     do
     {
@@ -81,7 +95,7 @@ static int convert_nsf(convert_param_t *cp)
         if (!nsf)
         {
             r = NSF2VGM_ERR_OUTOFMEMORY;
-            PRINT_ERR("Out of memory\n");
+            PRINT_ERR("%s", "Out of memory\n");
             break;
         }
         t = nsf_start_emu(nsf, reader, 10, NSF_SAMPLE_RATE, 1);
@@ -112,7 +126,7 @@ static int convert_nsf(convert_param_t *cp)
         if (!game_name[0])
         {
             r = NSF2VGM_ERR_INSUFFICIENT_DATA;
-            PRINT_ERR("The NSF file does not contain a game name, please specify in config json\n");
+            PRINT_ERR("%s", "The NSF file does not contain a game name, please specify in config json\n");
             break;
         }
         // with game name we can decide output dir
@@ -178,14 +192,107 @@ static int convert_nsf(convert_param_t *cp)
             // default date
             strcpy(release_date, "1980/01/01");
         }
-        // Meta collection done
+        // Prepare rip
+        if (cp->max_length)
+            max_samples = cp->max_length * NSF_SAMPLE_RATE;
+        if (cp->max_records)
+            max_records = cp->max_records;
+        if (cp->max_silence)
+            max_silence = cp->max_silence;
+        rip = nsfrip_create(max_records);
+        if (!rip)
+        {
+            r = NSF2VGM_ERR_OUTOFMEMORY;
+            PRINT_ERR("%s", "Out of memory\n");
+            break;
+        }
         PRINT_INF("Source File:  %s\n", cp->nsf_path);
-        PRINT_INF("Save to:      %s\n", vgm_path);
         PRINT_INF("Game name:    %s\n", game_name);
         PRINT_INF("Track %02d:     %s\n", cp->index, cp->track_name);
         PRINT_INF("Authors:      %s\n", authors);
         PRINT_INF("Release date: %s\n", release_date);
-        
+        nsf_enable_apu_sniffing(nsf, true, nsfrip_apu_read_rom, nsfrip_apu_write_reg, (void*)rip);
+        nsf_enable_slience_detect(nsf, max_silence * 1000);
+        nsf_init_song(nsf, cp->index - 1);
+        unsigned long nsamples = 0;
+        int16_t sample;
+        // play and rip
+        int save;
+        ansicon_print_string(ANSI_YELLOW, "Ripping ");
+        while (!nsf_silence_detected(nsf) && (nsamples < max_samples))
+        {
+            nsf_get_samples(nsf, 1, &sample);
+            nsfrip_add_sample(rip);
+            ++nsamples;
+            if (nsamples % 40000 == 0)
+            {
+                int percent = (int)(nsamples * 100.0f / max_samples + 0.5);
+                float t = (float)nsamples / NSF_SAMPLE_RATE;
+                char progress[64];
+                snprintf(progress, 40, "%d%% (%d:%02d.%03ds)", percent, (int)t / 60, (int)t % 60, (int)((t - (int)t) * 1000));
+                save = ansicon_set_string(ANSI_YELLOW, progress);
+                if (27 == ansicon_getch_non_blocking()) // ESC
+                {
+                    cancelled = true;
+                    break;
+                }
+            }
+        }
+        ansicon_move_cursor_right(save);
+        if (cancelled)
+        {
+            r = NSF2VGM_ERR_CANCELLED;
+            ansicon_print_string(ANSI_RED, " cancelled\n");
+            break;
+        }
+        nsfrip_finish_rip(rip);
+        // if play is finished because of silence detected, trim silence.
+        // Otherwise need to find loop
+        if (nsf_silence_detected(nsf))
+        {
+            ansicon_print_string(ANSI_YELLOW, " silence detected\n");
+            nsfrip_trim_silence(rip, max_silence * NSF_SAMPLE_RATE);
+        }
+        else
+        {
+            ansicon_print_string(ANSI_YELLOW, " done\n");
+            if (loop_detection)
+            {
+                if (nsfrip_find_loop(rip, min_loop_records))
+                {
+                    nsfrip_trim_loop(rip);
+                    char buf[64];
+                    float t = (float)rip->records[rip->loop_start_idx].samples / NSF_SAMPLE_RATE;
+                    snprintf(buf, 64, "%d:%02d.%03d", (int)t / 60, (int)t % 60, (int)((t - (int)t) * 1000));
+                    ansicon_print_string(ANSI_YELLOW, "Loop start at ");
+                    ansicon_print_string(ANSI_YELLOW, buf);
+                    t = (float)rip->records[rip->loop_end_idx].samples / NSF_SAMPLE_RATE;
+                    snprintf(buf, 64, "%d:%02d.%03d", (int)t / 60, (int)t % 60, (int)((t - (int)t) * 1000));
+                    ansicon_print_string(ANSI_YELLOW, "s, total ");
+                    ansicon_print_string(ANSI_YELLOW, buf);
+                    ansicon_print_string(ANSI_YELLOW, "s\n");
+                }
+                else
+                {
+                    ansicon_print_string(ANSI_LIGHTMAGENTA, "No loop found, it is usuall. You may increase max_length and try again.\n");
+                }
+            }
+        }
+        // If APU uses rom samples, dump it
+        if (rip->rom_hi > rip->rom_lo)
+        {
+            rom_len = rip->rom_hi - rip->rom_lo + 1;
+            rom = malloc(rom_len);
+            if (NULL == rom)
+            {
+                r = NSF2VGM_ERR_OUTOFMEMORY;
+                PRINT_ERR("%s", "Out of memory\n");
+                break;
+            }
+            nsf_dump_rom(nsf, rip->rom_lo, rom_len, rom);
+        }
+
+
     } while (0);
     if (rom) free(rom);
     if (nsf) nsf_destroy(nsf);
@@ -366,7 +473,7 @@ int process_config(const char *cf, int select)
                     if (override_game_name[0]) params.override_game_name = override_game_name;
                     if (override_authors[0]) params.override_authors = override_authors;
                     if (override_release_date[0]) params.override_release_date = override_release_date;
-                    convert_nsf(&params);
+                    if (convert_nsf(&params) != 0) break;
                 }
             }
         }
@@ -385,6 +492,7 @@ int main(int argc, const char *argv[])
     int r = 0;
     
     ansicon_setup();
+    ansicon_hide_cursor();
 
     if (argc < 2)
     {
@@ -410,7 +518,8 @@ int main(int argc, const char *argv[])
     
     r = process_config(cf, select);
   
+    ansicon_show_cursor();
 	ansicon_restore();
-
+    
     return r;
 }

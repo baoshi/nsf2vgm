@@ -10,6 +10,7 @@ typedef struct nsfrip_record_s
 {
     uint32_t wait_samples;
     uint32_t reg_ops;
+    unsigned long samples;
 } nsfrip_record_t;
 
 typedef struct nsfrip_s

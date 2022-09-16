@@ -109,6 +109,7 @@ void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param)
         {
             rip->total_samples += 65535;
             rip->wait_samples -= 65535;
+            rip->records[rip->records_len].samples = rip->total_samples;
             rip->records[rip->records_len].wait_samples = 65535;
             rip->records[rip->records_len].reg_ops = 0;
             ++(rip->records_len);
@@ -118,6 +119,7 @@ void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param)
         if (rip->records_len < rip->max_records)
         {
             rip->total_samples += rip->wait_samples;
+            rip->records[rip->records_len].samples = rip->total_samples;
             rip->records[rip->records_len].wait_samples = rip->wait_samples;
             rip->wait_samples = 0;
             rip->records[rip->records_len].reg_ops = RECORD_WRITE_REG | (addr << 8) | val;
@@ -221,14 +223,10 @@ bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
 void nsfrip_trim_loop(nsfrip_t *rip)
 {
     if (rip->loop_end_idx != 0)
-        rip->records_len = rip->loop_end_idx;
-    unsigned long samples = 0;
-    for (unsigned int i = 0; i < rip->records_len; ++i)
     {
-        uint32_t wait = rip->records[i].wait_samples;
-        samples += wait;
+        rip->records_len = rip->loop_end_idx + 1;
+        rip->total_samples = rip->records[rip->loop_end_idx].samples;
     }
-    rip->total_samples = samples;
 }
 
 

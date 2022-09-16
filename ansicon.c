@@ -1,8 +1,13 @@
 #ifdef _WIN32
 # include <windows.h>
+# define getch _getch
+# define kbhit _kbhit
 #else
 # include <termios.h>
 # include <unistd.h>
+# include <sys/ioctl.h> // for getkey
+# include <sys/types.h> // for kbhit()
+# include <sys/time.h>  // for kbhit()
 #endif
 
 #include <stdio.h>
@@ -84,5 +89,101 @@ int ansicon_restore(void)
     return 0;
 }
 
+
+
+/**
+ * @brief Get a charater without waiting on a Return
+ * @details Windows has this functionality in conio.h
+ * @return The character
+ */
+int getch(void)
+{
+	struct termios oldt, newt;
+	int ch;
+	tcgetattr(STDIN_FILENO, &oldt);
+	newt = oldt;
+	newt.c_lflag &= ~(ICANON | ECHO);
+	tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+	ch = getchar();
+	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+	return ch;
+}
+
+
+/**
+ * @brief Determines if a button was pressed.
+ * @details Windows has this in conio.h
+ * @return Number of characters read
+ */
+int
+kbhit(void)
+{
+	static struct termios oldt, newt;
+	int cnt = 0;
+	tcgetattr(STDIN_FILENO, &oldt);
+	newt = oldt;
+	newt.c_lflag    &= ~(ICANON | ECHO);
+	newt.c_iflag     = 0; /* input mode */
+	newt.c_oflag     = 0; /* output mode */
+	newt.c_cc[VMIN]  = 1; /* minimum time to wait */
+	newt.c_cc[VTIME] = 1; /* minimum characters to wait for */
+	tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+	ioctl(0, FIONREAD, &cnt); /* Read count */
+	struct timeval tv;
+	tv.tv_sec  = 0;
+	tv.tv_usec = 100;
+	select(STDIN_FILENO+1, NULL, NULL, NULL, &tv); /* A small time delay */
+	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+	return cnt; /* Return number of characters */
+}
+
 #endif
 
+void ansicon_show_cursor(void)
+{
+    printf("%s", ANSI_CURSOR_SHOW);
+}
+
+
+void ansicon_hide_cursor(void)
+{
+    printf("%s", ANSI_CURSOR_HIDE);
+}
+
+
+void ansicon_print_string(const char *color, const char *str)
+{
+    printf("%s", color);
+    printf("%s", str);
+}
+
+
+// Print string without advance cursor
+int ansicon_set_string(const char *color, const char *str)
+{
+    unsigned int len = (unsigned int)strlen(str);
+    if (len == 0) return 0;
+
+    printf("%s", color);
+    printf("%s", str);
+    char buf[32]; // enough for escape sequence below
+	sprintf(buf, "\033[%uD", len);  // move cursor back
+	printf("%s", buf);
+    return len;
+}
+
+
+// move cursor right by pos
+void ansicon_move_cursor_right(int pos) 
+{
+    printf("\x1b[%dC", pos);
+}
+
+
+int ansicon_getch_non_blocking(void)
+{
+	if (kbhit()) 
+        return getch();
+	else
+        return 0;
+}
