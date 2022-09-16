@@ -1,9 +1,8 @@
 {
   "nsf_file": "kage.nsf",
-  "out_dir" : "Kage",
-  "game_name": "Shadow of Ninja",
-  "authors": "Iku Mizutani, Koichi Yamanishi",
-  "release_date": "1990/08/10",
+  "out_dir" : "",
+  "game_name": "",
+  "authors": "",
   "tracks": [
     {
       "index": 1,

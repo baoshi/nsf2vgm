@@ -47,6 +47,7 @@ add_executable(nsf2vgm
 	nsfreader_file.c
 	nsfrip.c
 	nsfrip_vgm.c
+	ansicon.c
 	nsf2vgm.c
 )
-target_link_libraries(nsf2vgm cJSON cwalk rogueutil)
+target_link_libraries(nsf2vgm cJSON cwalk)

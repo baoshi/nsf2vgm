@@ -1,18 +1,20 @@
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <cJSON.h>
 #include <cwalk.h>
-#include <rogueutil.h>
 #include "platform.h"
+#include "ansicon.h"
 #include "nsf.h"
 #include "nsfreader_file.h"
 #include "nsfrip.h"
 
-#define NSF2VGM_ERR_SUCCESS         0
-#define NSF2VGM_ERR_OUTOFMEMORY     -1
-#define NSF2VGM_ERR_IOERROR         -2
-#define NSF2VGM_ERR_INVALIDCONFIG   -3
-#define NSF2VGM_ERR_INVALIDNSF      -4
+#define NSF2VGM_ERR_SUCCESS             0
+#define NSF2VGM_ERR_OUTOFMEMORY         -1
+#define NSF2VGM_ERR_IOERROR             -2
+#define NSF2VGM_ERR_INVALIDCONFIG       -3
+#define NSF2VGM_ERR_INVALIDNSF          -4
+#define NSF2VGM_ERR_INSUFFICIENT_DATA   -5
 
 #define MAX_GAME_NAME       64
 #define MAX_AUTHOR_NAME     128
@@ -25,8 +27,8 @@
 #define NSF_DEFAULT_MAX_RECORDS     10000000
 
 
-#define PRINT_ERR(...) colorPrint(RED, -1, __VA_ARGS__)
-#define PRINT_INF(...) colorPrint(BLUE, -1, __VA_ARGS__)
+#define PRINT_ERR(fmt, ...) do { printf(ANSI_RED); printf(fmt, __VA_ARGS__); } while (0)
+#define PRINT_INF(fmt, ...) do { printf(ANSI_LIGHTBLUE); printf(fmt, __VA_ARGS__); } while (0)
 
 
 
@@ -55,6 +57,7 @@ static int convert_nsf(convert_param_t *cp)
     int r = NSF2VGM_ERR_SUCCESS, t;
 
     char out_dir[MAX_PATH_NAME] = { '\0' };
+    char vgm_path[MAX_PATH_NAME] = { '\0' };
     char game_name[MAX_GAME_NAME] = { '\0' };
     char authors[MAX_AUTHOR_NAME] = { '\0' };
     char release_date[MAX_RELEASE_DATE] = { '\0' };
@@ -67,11 +70,11 @@ static int convert_nsf(convert_param_t *cp)
 
     do
     {
-        reader = nfr_create(nsf_path, NSF_CACHE_SIZE);
+        reader = nfr_create(cp->nsf_path, NSF_CACHE_SIZE);
         if (NULL == reader)
         {
             r = NSF2VGM_ERR_IOERROR;
-            PRINT_ERR("Failed to open NSF file \"%s\"\n", nsf_path);
+            PRINT_ERR("Failed to open NSF file \"%s\"\n", cp->nsf_path);
             break;
         }
         nsf = nsf_create();
@@ -85,11 +88,104 @@ static int convert_nsf(convert_param_t *cp)
         if (NSF_ERR_SUCCESS != t)
         {
             r = NSF2VGM_ERR_INVALIDNSF;
-            PRINT_ERR("File \"%s\" is not a valid NSF file\n", nsf_path);
+            PRINT_ERR("File \"%s\" is not a valid NSF file\n", cp->nsf_path);
             break;
         }
-        PRINT_INF("Converting \"%s\"\n", nsf_path);
-
+        // check if index is valid
+        if (cp->index > nsf->header->num_songs)
+        {
+            r = NSF2VGM_ERR_INVALIDCONFIG;
+            PRINT_ERR("Track #%d not found in NSF file\n", cp->index);
+            break;
+        }
+        // check meta inside nsf header vs. overrided parameters
+        if (cp->override_game_name)
+        {
+            strncpy(game_name, cp->override_game_name, MAX_GAME_NAME);
+            game_name[MAX_GAME_NAME - 1] = '\0';
+        }
+        else
+        {
+            strncpy(game_name, nsf->header->song_name, MAX_GAME_NAME);
+            game_name[MAX_GAME_NAME - 1] = '\0';
+        }
+        if (!game_name[0])
+        {
+            r = NSF2VGM_ERR_INSUFFICIENT_DATA;
+            PRINT_ERR("The NSF file does not contain a game name, please specify in config json\n");
+            break;
+        }
+        // with game name we can decide output dir
+        if (cp->override_out_dir)
+        {
+            strncpy(out_dir, cp->override_out_dir, MAX_PATH_NAME);
+            out_dir[MAX_PATH_NAME - 1] = '\0';
+        }
+        else
+        {
+            cwk_path_get_absolute(cp->config_dir, game_name, out_dir, MAX_PATH_NAME);
+        }
+        // output VGM file
+        cwk_path_get_absolute(out_dir, cp->track_file_name, vgm_path, MAX_PATH_NAME);
+        // authors
+        if (cp->override_authors)
+        {
+            strncpy(authors, cp->override_authors, MAX_AUTHOR_NAME);
+            authors[MAX_AUTHOR_NAME - 1] = '\0';
+        }
+        else if (nsf->header->artist_name[0])
+        {
+            strncpy(authors, nsf->header->artist_name, MAX_AUTHOR_NAME);
+            authors[MAX_AUTHOR_NAME - 1] = '\0';
+        }
+        else
+        {
+            strcpy(authors, "N/A");
+        }
+        // Release date (GD3 requres yyyy/mm/dd or yyyy/mm or yyyy)
+        if (cp->override_release_date)
+        {
+            strncpy(release_date, cp->override_release_date, MAX_RELEASE_DATE);
+            release_date[MAX_RELEASE_DATE - 1] = '\0';
+        }
+        else if (nsf->header->copyright[0])
+        {
+            // try infer release date (year) from copyright
+            char *p = nsf->header->copyright;
+            while (*p)
+            {
+                if (isdigit(*p))
+                {
+                    long val = strtol(p, &p, 10);
+                    if (val > 1900)
+                    {
+                        snprintf(release_date, MAX_RELEASE_DATE, "%d", val);
+                    }
+                    else if (val < 100)
+                    {
+                        snprintf(release_date, MAX_RELEASE_DATE, "%d", val + 1900);
+                    }
+                    break;
+                }
+                else
+                {
+                    ++p;
+                }
+            }
+        }
+        else
+        {
+            // default date
+            strcpy(release_date, "1980/01/01");
+        }
+        // Meta collection done
+        PRINT_INF("Source File:  %s\n", cp->nsf_path);
+        PRINT_INF("Save to:      %s\n", vgm_path);
+        PRINT_INF("Game name:    %s\n", game_name);
+        PRINT_INF("Track %02d:     %s\n", cp->index, cp->track_name);
+        PRINT_INF("Authors:      %s\n", authors);
+        PRINT_INF("Release date: %s\n", release_date);
+        
     } while (0);
     if (rom) free(rom);
     if (nsf) nsf_destroy(nsf);
@@ -125,7 +221,7 @@ int process_config(const char *cf, int select)
         if (NULL == jfd)
         {
             r = NSF2VGM_ERR_IOERROR;
-            NSF_PRINTERR("Failed to open \"%s\"\n", cf);
+            PRINT_ERR("Failed to open \"%s\"\n", cf);
             break;
         }
         fseek(jfd, 0, SEEK_END);
@@ -135,7 +231,7 @@ int process_config(const char *cf, int select)
         if (NULL == jstr)
         {
             r = NSF2VGM_ERR_OUTOFMEMORY;
-            NSF_PRINTERR("Out of memory\n");
+            PRINT_ERR("Out of memory\n");
             break;
         }
         fread(jstr, sz, 1, jfd);
@@ -151,7 +247,7 @@ int process_config(const char *cf, int select)
             const char *error_ptr = cJSON_GetErrorPtr();
             if (error_ptr != NULL)
             {   
-                NSF_PRINTERR("Config file error before: %s\n", error_ptr);
+                PRINT_ERR("Config file error before: %s\n", error_ptr);
             }
             r = NSF2VGM_ERR_INVALIDCONFIG;
             break;
@@ -172,18 +268,16 @@ int process_config(const char *cf, int select)
         }
         else
         {
-            NSF_PRINTERR("No valid nsf_file found.\n");
+            PRINT_ERR("No valid nsf_file found.\n");
             r = NSF2VGM_ERR_INVALIDCONFIG;
             break;
         }
-        NSF_PRINTDBG("NSF file: %s\n", nsf_path);
         // Process "game_name" value, Leave empty if not specified.
         item = cJSON_GetObjectItemCaseSensitive(config_json, "game_name");
         if (cJSON_IsString(item) && (item->valuestring != NULL) && (item->valuestring[0] != '\0'))
         {
             strncpy(override_game_name, item->valuestring, MAX_GAME_NAME);
             override_game_name[MAX_GAME_NAME - 1] = '\0';
-            NSF_PRINTDBG("Override game name: %s\n", override_game_name);
         }
         // Process "out_dir". Leave empty if not specified.
         item = cJSON_GetObjectItemCaseSensitive(config_json, "out_dir");
@@ -198,7 +292,6 @@ int process_config(const char *cf, int select)
                 strncpy(override_out_dir, item->valuestring, MAX_PATH_NAME);
                 override_out_dir[MAX_PATH_NAME - 1] = '\0';
             }
-            NSF_PRINTDBG("Override output dir: %s\n", override_out_dir);
         }
         // Process "authors" value. Leave empty if not specified.
         item = cJSON_GetObjectItemCaseSensitive(config_json, "authors");
@@ -206,7 +299,6 @@ int process_config(const char *cf, int select)
         {
             strncpy(override_authors, item->valuestring, MAX_AUTHOR_NAME);
             override_authors[MAX_AUTHOR_NAME - 1] = '\0';
-            NSF_PRINTDBG("Override authors: %s\n", override_authors);
         }
         // Process "release_date" value. Leave empty if not specified.
         item = cJSON_GetObjectItemCaseSensitive(config_json, "release_date");
@@ -214,7 +306,6 @@ int process_config(const char *cf, int select)
         {
             strncpy(override_release_date, item->valuestring, MAX_RELEASE_DATE);
             override_release_date[MAX_RELEASE_DATE - 1] = '\0';
-            NSF_PRINTDBG("Override release date: %s\n", override_release_date);
         }
         // Iteration on tracks
         const cJSON *track = NULL;
@@ -236,7 +327,6 @@ int process_config(const char *cf, int select)
             {
                 if (select == 0 || index == select)
                 {
-                    NSF_PRINTDBG("Process track %d, ", index);
                     track_name[0] = '\0';
                     track_file_name[0] = '\0';
                     item = cJSON_GetObjectItemCaseSensitive(track, "name");
@@ -266,7 +356,6 @@ int process_config(const char *cf, int select)
                         snprintf(track_file_name, MAX_PATH_NAME, "Track %02d.vgm", index);
                         track_file_name[MAX_PATH_NAME - 1] = '\0';
                     }
-                    NSF_PRINTDBG("Track name \"%s\", save as \"%s\"\n", track_name, track_file_name);
                     convert_param_t params = { 0 };
                     params.config_dir = base_dir;
                     params.nsf_path = nsf_path;
@@ -295,7 +384,7 @@ int main(int argc, const char *argv[])
 {
     int r = 0;
     
-    saveDefaultColor();
+    ansicon_setup();
 
     if (argc < 2)
     {
@@ -321,8 +410,7 @@ int main(int argc, const char *argv[])
     
     r = process_config(cf, select);
   
-    anykey(NULL);
-	resetColor();
+	ansicon_restore();
 
     return r;
 }
