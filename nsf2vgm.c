@@ -27,14 +27,14 @@
 #define NSF_DEFAULT_MAX_RECORDS     10000000
 
 
-#define PRINT_ERR(fmt, ...) do { printf(ANSI_RED); printf(fmt, __VA_ARGS__); } while (0)
-#define PRINT_INF(fmt, ...) do { printf(ANSI_LIGHTBLUE); printf(fmt, __VA_ARGS__); } while (0)
+#define PRINT_ERR(...) do { printf("%s", ANSI_RED); printf(__VA_ARGS__); } while (0)
+#define PRINT_INF(...) do { printf("%s", ANSI_LIGHTBLUE); printf(__VA_ARGS__); } while (0)
 
 
 
 static void usage()
 {
-    PRINT_ERR("Usage: nsf2vgm config.json [track no]\n");
+    PRINT_ERR("%s", "Usage: nsf2vgm config.json [track no]\n");
 }
 
 
@@ -106,7 +106,7 @@ static int convert_nsf(convert_param_t *cp)
         }
         else
         {
-            strncpy(game_name, nsf->header->song_name, MAX_GAME_NAME);
+            strncpy(game_name, (const char*)nsf->header->song_name, MAX_GAME_NAME);
             game_name[MAX_GAME_NAME - 1] = '\0';
         }
         if (!game_name[0])
@@ -135,7 +135,7 @@ static int convert_nsf(convert_param_t *cp)
         }
         else if (nsf->header->artist_name[0])
         {
-            strncpy(authors, nsf->header->artist_name, MAX_AUTHOR_NAME);
+            strncpy(authors, (const char *)nsf->header->artist_name, MAX_AUTHOR_NAME);
             authors[MAX_AUTHOR_NAME - 1] = '\0';
         }
         else
@@ -151,12 +151,12 @@ static int convert_nsf(convert_param_t *cp)
         else if (nsf->header->copyright[0])
         {
             // try infer release date (year) from copyright
-            char *p = nsf->header->copyright;
+            char *p = (char *)nsf->header->copyright;
             while (*p)
             {
                 if (isdigit(*p))
                 {
-                    long val = strtol(p, &p, 10);
+                    int val = (int)strtol(p, &p, 10);
                     if (val > 1900)
                     {
                         snprintf(release_date, MAX_RELEASE_DATE, "%d", val);

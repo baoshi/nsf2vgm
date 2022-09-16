@@ -63,6 +63,7 @@ int ansicon_restore(void)
 
 #else
 
+static struct termios orig_term, new_term;
 
 int ansicon_setup(void) 
 {
@@ -70,15 +71,17 @@ int ansicon_setup(void)
     new_term = orig_term;
     new_term.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &new_term);
+    return 0;
 }
 
 
 int ansicon_restore(void)
 {
     // Reset colors
-    printf(ANSI_ATTRIBUTE_RESET);
+    printf("%s", ANSI_ATTRIBUTE_RESET);
     // Reset console mode
     tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
+    return 0;
 }
 
 #endif
