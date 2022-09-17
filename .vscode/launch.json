@@ -26,7 +26,7 @@
         {
             "name": "Linux GDB",
             "type": "cppdbg",
-            "request": "launch",
+            "request": "launch", 
             "program": "${command:cmake.launchTargetPath}",
             "args": ["test/wily.vgm"],
             "stopAtEntry": true,

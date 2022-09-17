@@ -242,7 +242,7 @@ static int convert_nsf(convert_param_t *cp)
         if (cancelled)
         {
             r = NSF2VGM_ERR_CANCELLED;
-            ansicon_print_string(ANSI_RED, " cancelled\n");
+            ansicon_print_string(ANSI_RED, " Cancelled\n");
             break;
         }
         nsfrip_finish_rip(rip);
@@ -274,7 +274,7 @@ static int convert_nsf(convert_param_t *cp)
                 }
                 else
                 {
-                    ansicon_print_string(ANSI_LIGHTMAGENTA, "No loop found, it is usuall. You may increase max_length and try again.\n");
+                    ansicon_print_string(ANSI_LIGHTMAGENTA, "No loop found, it is NOT usuall. Increase max_length and try again.\n");
                 }
             }
         }

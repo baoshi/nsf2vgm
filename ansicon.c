@@ -156,6 +156,7 @@ void ansicon_print_string(const char *color, const char *str)
 {
     printf("%s", color);
     printf("%s", str);
+    fflush(stdout);
 }
 
 
@@ -170,6 +171,7 @@ int ansicon_set_string(const char *color, const char *str)
     char buf[32]; // enough for escape sequence below
 	sprintf(buf, "\033[%uD", len);  // move cursor back
 	printf("%s", buf);
+    fflush(stdout);
     return len;
 }
 
