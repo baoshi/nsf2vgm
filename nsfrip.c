@@ -137,27 +137,31 @@ static inline bool compare_records(const nsfrip_record_t *a, const nsfrip_record
 
 /*
     Check if:
-        records[loop_start                  ] == records[loop_start + loop_length                  ]
-        records[loop_start + 1              ] == records[loop_start + loop_length + 1              ]
-        records[loop_start + 2              ] == records[loop_start + loop_length + 2              ]
+        records[loop_start                  ] == records[loop_start +     loop_length                  ]
         ...
-        records[loop_start + loop_length - 1] == records[loop_start + loop_length + loop_length - 1]
+        records[loop_start                  ] == records[loop_start + k * loop_length                  ] 
+        
+        records[loop_start + 1              ] == records[loop_start +     loop_length + 1              ]
+        ...
+        records[loop_start + 1              ] == records[loop_start + k * loop_length + 1              ]
+        ...
+        ...
+        records[loop_start + loop_length - 1] == records[loop_start + k * loop_length + loop_length - 1]
+        
+
  */
-static inline bool is_loop(nsfrip_record_t *records, unsigned long length, unsigned long loop_start, unsigned long loop_length, bool allow_truncate)
+static inline bool is_loop(nsfrip_record_t *records, unsigned long length, unsigned long loop_start, unsigned long loop_length)
 {
-    unsigned long p1 = loop_start;
-    unsigned long p2 = loop_start + loop_length;
-    for (p1 = loop_start; p1 < loop_start + loop_length; ++p1)
+    unsigned long k = ((length - loop_start + 1) / loop_length - 1); // loop_start + (k + 1) * loop_length - 1 < length
+    const nsfrip_record_t *a, *b;
+    for (unsigned long i = 1; i <= k; ++i)
     {
-        p2 = p1 + loop_length;
-        if (p2 < length)
+        for (unsigned long j = 0; j < loop_length; ++j)
         {
-            if (!compare_records(&records[p1], &records[p2])) 
+            a = &records[loop_start + j];
+            b = &records[loop_start + i * loop_length + j];
+            if (!compare_records(a, b))
                 return false;
-        }
-        else
-        {
-            if (allow_truncate) break;
         }
     }
     return true;
@@ -178,40 +182,11 @@ bool nsfrip_find_loop(nsfrip_t *rip, unsigned long min_length)
         max_length = (length - start) / 2;
         for (loop_length = min_length; loop_length < max_length; ++loop_length)
         {
-            if (is_loop(records, length, start, loop_length, false))
+            if (is_loop(records, length, start, loop_length))
             {
-                // it is possible that the loop ls like ABC ABC DEFG DEFG
-                // When we found a loop, test if it loops all the way to the end.
-                bool isrealloop = true;
-                if (start + loop_length + loop_length < length)
-                {
-                    unsigned long temp_start = start + loop_length;
-                    while (temp_start + loop_length < length)
-                    {
-                        if (!is_loop(records, length, temp_start, loop_length, true))
-                        {
-                            isrealloop = false;
-                            break;
-                        }
-                        temp_start = temp_start + loop_length;
-                    }
-                    if (isrealloop)
-                    {
-                        rip->loop_start_idx = start;
-                        rip->loop_end_idx = start + loop_length - 1;
-                        return true;
-                    }
-                    else
-                    {
-                        start = temp_start; // Skip ABC
-                    }
-                }
-                else
-                {
-                    rip->loop_start_idx = start;
-                    rip->loop_end_idx = start + loop_length - 1;
-                    return true;
-                }
+                rip->loop_start_idx = start;
+                rip->loop_end_idx = start + loop_length - 1;
+                return true;
             }
         }
     }
