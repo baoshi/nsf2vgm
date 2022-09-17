@@ -27,7 +27,7 @@
 
 #define NSFRIP_DEFAULT_MAX_RECORDS      100000
 #define NSFRIP_DEFAULT_MAX_SLIENCE      2
-#define NSFRIP_DEFAULT_MAX_LENGTH       300
+#define NSFRIP_DEFAULT_MAX_LENGTH       120
 #define NSFRIP_DEFAULT_MIN_LOOP_RECORDS 1000
 
 
@@ -38,7 +38,8 @@
 
 static void usage()
 {
-    PRINT_ERR("%s", "Usage: nsf2vgm config.json [track no]\n");
+    PRINT_ERR("%s", "Usage: nsf2vgm config.json [track no] or\n");
+    PRINT_ERR("%s", "       nsf2vgm file.nsf [track no]\n");
 }
 
 
@@ -218,7 +219,7 @@ static int convert_nsf(convert_param_t *cp)
         int16_t sample;
         // play and rip
         int save;
-        ansicon_print_string(ANSI_YELLOW, "Ripping ");
+        ansicon_puts(ANSI_YELLOW, "Ripping ");
         while (!nsf_silence_detected(nsf) && (nsamples < max_samples))
         {
             nsf_get_samples(nsf, 1, &sample);
@@ -242,7 +243,7 @@ static int convert_nsf(convert_param_t *cp)
         if (cancelled)
         {
             r = NSF2VGM_ERR_CANCELLED;
-            ansicon_print_string(ANSI_RED, " Cancelled\n");
+            ansicon_puts(ANSI_RED, " Cancelled\n");
             break;
         }
         nsfrip_finish_rip(rip);
@@ -250,12 +251,12 @@ static int convert_nsf(convert_param_t *cp)
         // Otherwise need to find loop
         if (nsf_silence_detected(nsf))
         {
-            ansicon_print_string(ANSI_YELLOW, " silence detected\n");
+            ansicon_puts(ANSI_YELLOW, " silence detected\n");
             nsfrip_trim_silence(rip, max_silence * NSF_SAMPLE_RATE);
         }
         else
         {
-            ansicon_print_string(ANSI_YELLOW, " done\n");
+            ansicon_puts(ANSI_YELLOW, " done\n");
             if (loop_detection)
             {
                 if (nsfrip_find_loop(rip, min_loop_records))
@@ -264,17 +265,17 @@ static int convert_nsf(convert_param_t *cp)
                     char buf[64];
                     float t = (float)rip->records[rip->loop_start_idx].samples / NSF_SAMPLE_RATE;
                     snprintf(buf, 64, "%d:%02d.%03d", (int)t / 60, (int)t % 60, (int)((t - (int)t) * 1000));
-                    ansicon_print_string(ANSI_YELLOW, "Loop start at ");
-                    ansicon_print_string(ANSI_YELLOW, buf);
+                    ansicon_puts(ANSI_YELLOW, "Loop start at ");
+                    ansicon_puts(ANSI_YELLOW, buf);
                     t = (float)rip->records[rip->loop_end_idx].samples / NSF_SAMPLE_RATE;
                     snprintf(buf, 64, "%d:%02d.%03d", (int)t / 60, (int)t % 60, (int)((t - (int)t) * 1000));
-                    ansicon_print_string(ANSI_YELLOW, "s, total ");
-                    ansicon_print_string(ANSI_YELLOW, buf);
-                    ansicon_print_string(ANSI_YELLOW, "s\n");
+                    ansicon_puts(ANSI_YELLOW, "s, total ");
+                    ansicon_puts(ANSI_YELLOW, buf);
+                    ansicon_puts(ANSI_YELLOW, "s\n");
                 }
                 else
                 {
-                    ansicon_print_string(ANSI_LIGHTMAGENTA, "No loop found, it is NOT usuall. Increase max_length and try again.\n");
+                    ansicon_puts(ANSI_LIGHTMAGENTA, "No loop found, it is NOT unusual. Increase max_length and try again.\n");
                 }
             }
         }
@@ -291,7 +292,8 @@ static int convert_nsf(convert_param_t *cp)
             }
             nsf_dump_rom(nsf, rip->rom_lo, rom_len, rom);
         }
-
+        
+        puts("---------");
 
     } while (0);
     if (rom) free(rom);
@@ -494,32 +496,50 @@ int main(int argc, const char *argv[])
     ansicon_setup();
     ansicon_hide_cursor();
 
-    if (argc < 2)
+    do
     {
-        usage();
-        return -1;
-    }
+        if (argc < 2)
+        {
+            r = -1;
+            usage();
+            break;
+        }
 
-    const char *cf = argv[1];   // config file
-    char config[MAX_PATH_NAME];
-    // If path of config file itself is relative, extend it to absolute path so we can resolve
-    // other paths set in the config file.
-    if (cwk_path_is_relative(cf))
-    {
-        char *cwd = getcwd(NULL, 0);
-        cwk_path_get_absolute(cwd, cf, config, MAX_PATH_NAME);
-        free(cwd);
-        cf = config;
-    }
-   
-    int select = 0;
-    if (argc == 3)
-        select = atoi(argv[2]);
-    
-    r = process_config(cf, select);
-  
+        const char *infile = argv[1];   // config file
+        char infile_abs[MAX_PATH_NAME];
+        // If path of input file is relative, extend it to absolute path
+        if (cwk_path_is_relative(infile))
+        {
+            char *cwd = getcwd(NULL, 0);
+            cwk_path_get_absolute(cwd, infile, infile_abs, MAX_PATH_NAME);
+            free(cwd);
+            infile = infile_abs;
+        }
+        char *ext; size_t el;
+        if (cwk_path_get_extension(infile, &ext, &el))
+        {
+            if (0 == strcmpi(ext + 1, "json"))
+            {
+                int select = 0;
+                if (argc == 3) select = atoi(argv[2]);
+                r = process_config(infile, select);
+            }
+            else if (0 == strcmpi(ext + 1, "nsf"))
+            {
+
+            }
+            else
+            {
+                r = -1;
+                usage();
+                break;
+            }
+        }
+
+    } while (0);
+ 
     ansicon_show_cursor();
-	ansicon_restore();
-    
+    ansicon_restore();
+
     return r;
 }

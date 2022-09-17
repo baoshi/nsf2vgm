@@ -13,10 +13,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef _WIN32
 # include <direct.h>
 # define getcwd _getcwd
+# define strcmpi _strcmpi
 #else
 # include <unistd.h>
 #endif

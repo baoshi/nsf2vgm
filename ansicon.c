@@ -1,5 +1,7 @@
 #ifdef _WIN32
 # include <windows.h>
+# include <direct.h>
+# include <conio.h>
 # define getch _getch
 # define kbhit _kbhit
 #else
@@ -58,7 +60,7 @@ int ansicon_setup(void)
 int ansicon_restore(void)
 {
     // Reset colors
-    printf(ANSI_ATTRIBUTE_RESET);    
+    fputs(ANSI_ATTRIBUTE_RESET, stdout);
     // Reset console mode
     if (!SetConsoleMode(_hStdOut, _dwModeOutSave) || !SetConsoleMode(_hStdIn, _dwModeInSave)) 
     {
@@ -84,7 +86,7 @@ int ansicon_setup(void)
 int ansicon_restore(void)
 {
     // Reset colors
-    printf("%s", ANSI_ATTRIBUTE_RESET);
+    fputs(ANSI_ATTRIBUTE_RESET, stdout);
     // Reset console mode
     tcsetattr(STDIN_FILENO, TCSANOW, &orig_term);
     return 0;
@@ -142,20 +144,33 @@ kbhit(void)
 
 void ansicon_show_cursor(void)
 {
-    printf("%s", ANSI_CURSOR_SHOW);
+    fputs(ANSI_CURSOR_SHOW, stdout);
 }
 
 
 void ansicon_hide_cursor(void)
 {
-    printf("%s", ANSI_CURSOR_HIDE);
+    fputs(ANSI_CURSOR_HIDE, stdout);
 }
 
 
-void ansicon_print_string(const char *color, const char *str)
+void ansicon_puts(const char *color, const char *str)
 {
-    printf("%s", color);
-    printf("%s", str);
+    if (color) fputs(color, stdout);
+    if (str) fputs(str, stdout);
+    fputs(ANSI_ATTRIBUTE_RESET, stdout);
+    fflush(stdout);
+}
+
+
+void ansicon_printf(const char *color, const char *fmt, ...)
+{
+    va_list args;
+	va_start(args, fmt);
+	if (color) fputs(color, stdout);
+    vprintf(fmt, args);
+	va_end(args);
+	fputs(ANSI_ATTRIBUTE_RESET, stdout);
     fflush(stdout);
 }
 
@@ -166,11 +181,9 @@ int ansicon_set_string(const char *color, const char *str)
     unsigned int len = (unsigned int)strlen(str);
     if (len == 0) return 0;
 
-    printf("%s", color);
-    printf("%s", str);
-    char buf[32]; // enough for escape sequence below
-	sprintf(buf, "\033[%uD", len);  // move cursor back
-	printf("%s", buf);
+    if (color) fputs(color, stdout);
+    fputs(str, stdout);
+    printf("\033[%uD", len);
     fflush(stdout);
     return len;
 }
@@ -179,7 +192,7 @@ int ansicon_set_string(const char *color, const char *str)
 // move cursor right by pos
 void ansicon_move_cursor_right(int pos) 
 {
-    printf("\x1b[%dC", pos);
+    printf("\033[%dC", pos);
 }
 
 

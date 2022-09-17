@@ -15,7 +15,9 @@
         "limits": "c",
         "ratio": "c",
         "algorithm": "c",
-        "nesbus.h": "c"
+        "nesbus.h": "c",
+        "direct.h": "c",
+        "ansicon.h": "c"
     },
     "workbench.editorAssociations": {
         "*.vgm": "hexEditor.hexedit"
