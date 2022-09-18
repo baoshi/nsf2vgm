@@ -92,8 +92,9 @@ typedef struct nsf_s
     int16_t blip_last_sample;
     // Slient detection
     bool silent;
-    uint32_t slient_cycles_target;
-    uint32_t slient_cycles_count;
+    bool silence_detection;
+    unsigned int slient_sample_target;
+    unsigned int slient_sample_count;
     // APU sniffing
     bool sniff_enabled;
     apu_read_rom_cb sniff_apu_read_rom;
@@ -110,7 +111,7 @@ int nsf_start_emu(nsf_t* ctx, nsfreader_t* reader, uint16_t max_sample_count, ui
 void nsf_stop_emu(nsf_t *ctx);
 int nsf_init_song(nsf_t *ctx, uint8_t song);
 int nsf_get_samples(nsf_t *ctx, uint16_t count, int16_t* samples);
-int nsf_enable_slience_detect(nsf_t *ctx, uint32_t ms);
+int nsf_enable_slience_detect(nsf_t *ctx, unsigned int samples);
 bool nsf_silence_detected(nsf_t *ctx);
 void nsf_enable_apu_sniffing(nsf_t *c, bool enable, apu_read_rom_cb read, apu_write_reg_cb write, void *param);
 int nsf_dump_rom(nsf_t *ctx, int16_t addr, int16_t len, uint8_t *buf);

@@ -19,6 +19,7 @@
 # include <direct.h>
 # define getcwd _getcwd
 # define strcmpi _strcmpi
+# define mkdir(d,m) _mkdir(d)
 #else
 # include <unistd.h>
 #endif

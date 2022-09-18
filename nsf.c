@@ -441,8 +441,9 @@ int nsf_start_emu(nsf_t* c, nsfreader_t* reader, uint16_t max_sample_count, uint
     blip_set_rates(c->blip, c->clock_rate, c->output_sample_rate);
     c->blip_last_sample = 0;
     // Silent detection
-    c->slient_cycles_target = c->clock_rate * (SILENT_DETECTION_MS / 100) / 10;
-    c->slient_cycles_count = 0;
+    c->silence_detection = true;
+    c->slient_sample_target = SILENT_DETECTION_MS * c->apu_sample_rate / 1000;
+    c->slient_sample_count = 0;
 
 start_exit:
     if ((ret != NSF_ERR_SUCCESS) && (c != 0))
@@ -521,7 +522,7 @@ int nsf_init_song(nsf_t* c, uint8_t song)
     blip_clear(c->blip);
     c->cycles = 0;
     c->total_samples = 0;
-    c->slient_cycles_count = 0;
+    c->slient_sample_count = 0;
     c->silent = false;
     return NSF_ERR_SUCCESS;
 }
@@ -586,17 +587,20 @@ int nsf_get_samples(nsf_t* c, uint16_t count, int16_t* samples)
             int16_t delta = s - c->blip_last_sample;
             c->blip_last_sample = s;
             blip_add_delta(c->blip, i, delta);
-            if (0 == delta)
+            if (c->silence_detection)
             {
-                c->slient_cycles_count += c->cycles_per_apu_sample;
-                if (c->slient_cycles_count >= c->slient_cycles_target)
+                if (0 == delta)
                 {
-                    c->silent = true;
+                    ++(c->slient_sample_count);
+                    if (c->slient_sample_count >= c->slient_sample_target)
+                    {
+                        c->silent = true;
+                    }
                 }
-            }
-            else
-            {
-                c->slient_cycles_count = 0;
+                else
+                {
+                    c->slient_sample_count = 0;
+                }
             }
             // Schedule next sample
             c->next_apu_sample_cycle = c->cycles + c->cycles_per_apu_sample;
@@ -616,7 +620,7 @@ int nsf_get_samples(nsf_t* c, uint16_t count, int16_t* samples)
 }
 
 
-int nsf_enable_slience_detect(nsf_t* c, uint32_t ms)
+int nsf_enable_slience_detect(nsf_t* c, unsigned int samples)
 {
     if (0 == c)
     {
@@ -626,12 +630,21 @@ int nsf_enable_slience_detect(nsf_t* c, uint32_t ms)
     {
         return NSF_ERR_NOT_INITIALIZED;
     }
-    if (ms > 10000) // to large
+    if (samples == 0)
     {
-        return NSF_ERR_INVALIDPARAM;
+        c->silence_detection = false;
     }
-    c->slient_cycles_target = c->clock_rate * (ms / 100) / 10;
-    c->slient_cycles_count = 0;
+    else if (samples > 500000) // 11 seconds in 44100Hz
+    {
+        // no effect, just enable slience detection with default target
+        c->slient_sample_target = SILENT_DETECTION_MS * c->apu_sample_rate / 1000;
+        c->silence_detection = true;
+    }
+    else
+    {
+        c->slient_sample_target = samples;
+        c->slient_sample_count = 0;
+    }
     return NSF_ERR_SUCCESS;
 }
 

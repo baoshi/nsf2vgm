@@ -16,19 +16,20 @@
 #define NSF2VGM_ERR_INVALIDCONFIG       -4
 #define NSF2VGM_ERR_INVALIDNSF          -5
 #define NSF2VGM_ERR_INSUFFICIENT_DATA   -6
+#define NSF2VGM_ERR_NOMORE              -7
 
 #define MAX_GAME_NAME       64
 #define MAX_AUTHOR_NAME     128
 #define MAX_RELEASE_DATE    16
-#define MAX_TRACK_NAME      32
+#define MAX_TRACK_NAME      64
 
 #define NSF_SAMPLE_RATE             44100
 #define NSF_CACHE_SIZE              4096
 
-#define NSFRIP_DEFAULT_MAX_RECORDS      100000
-#define NSFRIP_DEFAULT_MAX_SLIENCE      2
-#define NSFRIP_DEFAULT_MAX_LENGTH       120
-#define NSFRIP_DEFAULT_MIN_LOOP_RECORDS 1000
+#define NSFRIP_DEFAULT_MAX_TRACK_LENGTH     120.0
+#define NSFRIP_DEFAULT_MAX_RECORDS          100000
+#define NSFRIP_DEFAULT_MIN_SLIENCE          2
+#define NSFRIP_DEFAULT_MIN_LOOP_RECORDS     1000
 
 
 #define PRINT_ERR(...) do { printf("%s", ANSI_RED); printf(__VA_ARGS__); } while (0)
@@ -54,10 +55,12 @@ typedef struct convert_param_s
     const char *override_game_name;     // game name if specified
     const char *override_authors;       // authors if specfiied
     const char *override_release_date;  // game release data if specified
-    unsigned long max_length;
-    unsigned long max_records;
-    unsigned long max_silence;
-    bool loop_detection;
+    double max_track_length;            // max track length (seconds) to rip
+    unsigned long max_records;          // max records to collect
+    bool silence_detection;             // whether to use silence detection
+    double min_silence;                 // if the song went silent for more than min_silence seconds, consider silence detected
+    bool loop_detection;                // whether to use loop detection
+    unsigned long min_loop_records;     // when searching for loop, minimal loop length allowed
 } convert_param_t;
  
 
@@ -76,11 +79,7 @@ static int convert_nsf(convert_param_t *cp)
     nsf_t *nsf = NULL;
     uint8_t *rom = NULL;
     uint16_t rom_len = 0;
-    unsigned long max_records = NSFRIP_DEFAULT_MAX_RECORDS;
-    unsigned long max_silence = NSFRIP_DEFAULT_MAX_SLIENCE;
-    unsigned long max_samples = NSFRIP_DEFAULT_MAX_LENGTH * NSF_SAMPLE_RATE;
-    unsigned long min_loop_records = NSFRIP_DEFAULT_MIN_LOOP_RECORDS;
-    bool loop_detection = true;
+    
     bool cancelled = false;
 
     do
@@ -109,8 +108,7 @@ static int convert_nsf(convert_param_t *cp)
         // check if index is valid
         if (cp->index > nsf->header->num_songs)
         {
-            r = NSF2VGM_ERR_INVALIDCONFIG;
-            PRINT_ERR("Track #%d not found in NSF file\n", cp->index);
+            r = NSF2VGM_ERR_NOMORE;
             break;
         }
         // check meta inside nsf header vs. overrided parameters
@@ -194,13 +192,8 @@ static int convert_nsf(convert_param_t *cp)
             strcpy(release_date, "1980/01/01");
         }
         // Prepare rip
-        if (cp->max_length)
-            max_samples = cp->max_length * NSF_SAMPLE_RATE;
-        if (cp->max_records)
-            max_records = cp->max_records;
-        if (cp->max_silence)
-            max_silence = cp->max_silence;
-        rip = nsfrip_create(max_records);
+        
+        rip = nsfrip_create(cp->max_records);
         if (!rip)
         {
             r = NSF2VGM_ERR_OUTOFMEMORY;
@@ -213,13 +206,20 @@ static int convert_nsf(convert_param_t *cp)
         PRINT_INF("Authors:      %s\n", authors);
         PRINT_INF("Release date: %s\n", release_date);
         nsf_enable_apu_sniffing(nsf, true, nsfrip_apu_read_rom, nsfrip_apu_write_reg, (void*)rip);
-        nsf_enable_slience_detect(nsf, max_silence * 1000);
+        unsigned int silence_samples =  (unsigned int)(cp->min_silence * NSF_SAMPLE_RATE + 0.5);
+        if (cp->silence_detection) 
+            nsf_enable_slience_detect(nsf, silence_samples);
+        else
+            nsf_enable_slience_detect(nsf, 0);  // 0 disables slience detection
         nsf_init_song(nsf, cp->index - 1);
         unsigned long nsamples = 0;
         int16_t sample;
         // play and rip
-        int save;
+        int save = 0, percent;
+        char progress[64];
+        float t;
         ansicon_puts(ANSI_YELLOW, "Ripping ");
+        unsigned long max_samples = (unsigned long)(cp->max_track_length * NSF_SAMPLE_RATE + 0.5);
         while (!nsf_silence_detected(nsf) && (nsamples < max_samples))
         {
             nsf_get_samples(nsf, 1, &sample);
@@ -227,9 +227,8 @@ static int convert_nsf(convert_param_t *cp)
             ++nsamples;
             if (nsamples % 40000 == 0)
             {
-                int percent = (int)(nsamples * 100.0f / max_samples + 0.5);
-                float t = (float)nsamples / NSF_SAMPLE_RATE;
-                char progress[64];
+                percent = (int)(nsamples * 100.0f / max_samples);
+                t = (float)nsamples / NSF_SAMPLE_RATE;
                 snprintf(progress, 40, "%d%% (%d:%02d.%03ds)", percent, (int)t / 60, (int)t % 60, (int)((t - (int)t) * 1000));
                 save = ansicon_set_string(ANSI_YELLOW, progress);
                 if (27 == ansicon_getch_non_blocking()) // ESC
@@ -239,7 +238,10 @@ static int convert_nsf(convert_param_t *cp)
                 }
             }
         }
-        ansicon_move_cursor_right(save);
+        percent = (int)(nsamples * 100.0f / max_samples);
+        t = (float)nsamples / NSF_SAMPLE_RATE;
+        snprintf(progress, 40, "%d%% (%d:%02d.%02d)", percent, (int)t / 60, (int)t % 60, (int)((t - (int)t) * 100));
+        ansicon_puts(ANSI_YELLOW, progress);
         if (cancelled)
         {
             r = NSF2VGM_ERR_CANCELLED;
@@ -252,30 +254,30 @@ static int convert_nsf(convert_param_t *cp)
         if (nsf_silence_detected(nsf))
         {
             ansicon_puts(ANSI_YELLOW, " silence detected\n");
-            nsfrip_trim_silence(rip, max_silence * NSF_SAMPLE_RATE);
+            nsfrip_trim_silence(rip, silence_samples);
         }
         else
         {
             ansicon_puts(ANSI_YELLOW, " done\n");
-            if (loop_detection)
+            if (cp->loop_detection)
             {
-                if (nsfrip_find_loop(rip, min_loop_records))
+                if (nsfrip_find_loop(rip, cp->min_loop_records))
                 {
                     nsfrip_trim_loop(rip);
                     char buf[64];
                     float t = (float)rip->records[rip->loop_start_idx].samples / NSF_SAMPLE_RATE;
-                    snprintf(buf, 64, "%d:%02d.%03d", (int)t / 60, (int)t % 60, (int)((t - (int)t) * 1000));
-                    ansicon_puts(ANSI_YELLOW, "Loop start at ");
+                    snprintf(buf, 64, "%d:%02d.%02d", (int)t / 60, (int)t % 60, (int)((t - (int)t) * 100));
+                    ansicon_puts(ANSI_YELLOW, "Found loop at ");
                     ansicon_puts(ANSI_YELLOW, buf);
                     t = (float)rip->records[rip->loop_end_idx].samples / NSF_SAMPLE_RATE;
-                    snprintf(buf, 64, "%d:%02d.%03d", (int)t / 60, (int)t % 60, (int)((t - (int)t) * 1000));
-                    ansicon_puts(ANSI_YELLOW, "s, total ");
+                    snprintf(buf, 64, "%d:%02d.%02d", (int)t / 60, (int)t % 60, (int)((t - (int)t) * 100));
+                    ansicon_puts(ANSI_YELLOW, ". Track length ");
                     ansicon_puts(ANSI_YELLOW, buf);
                     ansicon_puts(ANSI_YELLOW, "s\n");
                 }
                 else
                 {
-                    ansicon_puts(ANSI_LIGHTMAGENTA, "No loop found, it is NOT unusual. Increase max_length and try again.\n");
+                    ansicon_puts(ANSI_LIGHTMAGENTA, "No loop found, it is NOT unusual. Increase max_track_length and try again.\n");
                 }
             }
         }
@@ -292,8 +294,17 @@ static int convert_nsf(convert_param_t *cp)
             }
             nsf_dump_rom(nsf, rip->rom_lo, rom_len, rom);
         }
-        
-        puts("---------");
+        // create diretory if necessary
+        mkdir(out_dir, 0777);
+        vgm_meta_t meta = { 0 };
+        meta.name = game_name;
+        r = nsfrip_export_vgm(rip, rom, rom_len, &meta, vgm_path);
+        if (r != NSF2VGM_ERR_SUCCESS)
+        {
+            PRINT_ERR("%s", "Export VGM failed\n");
+            break;
+        }
+        ansicon_printf(ANSI_LIGHTGREEN, "Save VGM to %s\n\n", vgm_path);
 
     } while (0);
     if (rom) free(rom);
@@ -315,8 +326,13 @@ int process_config(const char *cf, int select)
     char override_game_name[MAX_GAME_NAME] = { '\0' };          // Allow config file to override game name (if not specified, use game name inside nsf file)
     char override_authors[MAX_AUTHOR_NAME] = { '\0' };          // Allos config file to override game authors (if not specified, use author name inside nsf file)
     char override_release_date[MAX_RELEASE_DATE] = { '\0' };    // Allos config file to override release date (if not specified, try figure out from nsf file)
-    char track_name[MAX_TRACK_NAME];
-    char track_file_name[MAX_PATH_NAME];
+    
+    double max_track_length;
+    unsigned long max_records;
+    bool silence_detection;
+    double min_silence;
+    bool loop_detection;
+    unsigned long min_loop_records;
 
     FILE *jfd = NULL;           // config file handle
     char *jstr = NULL;          // json string
@@ -362,7 +378,7 @@ int process_config(const char *cf, int select)
             break;
         }
         // Process requiured nsf_file value
-        item = cJSON_GetObjectItemCaseSensitive(config_json, "nsf_file");
+        item = cJSON_GetObjectItem(config_json, "nsf_file");
         if (cJSON_IsString(item) && (item->valuestring != NULL) && (item->valuestring[0] != '\0'))
         {
             if (cwk_path_is_relative(item->valuestring))
@@ -381,15 +397,15 @@ int process_config(const char *cf, int select)
             r = NSF2VGM_ERR_INVALIDCONFIG;
             break;
         }
-        // Process "game_name" value, Leave empty if not specified.
-        item = cJSON_GetObjectItemCaseSensitive(config_json, "game_name");
+        // Process optional "game_name" value. To read from NSF file if unspecified.
+        item = cJSON_GetObjectItem(config_json, "game_name");
         if (cJSON_IsString(item) && (item->valuestring != NULL) && (item->valuestring[0] != '\0'))
         {
             strncpy(override_game_name, item->valuestring, MAX_GAME_NAME);
             override_game_name[MAX_GAME_NAME - 1] = '\0';
         }
-        // Process "out_dir". Leave empty if not specified.
-        item = cJSON_GetObjectItemCaseSensitive(config_json, "out_dir");
+        // Process optional "out_dir" value. To use game name from NSF if unspecified.
+        item = cJSON_GetObjectItem(config_json, "out_dir");
         if (cJSON_IsString(item) && (item->valuestring != NULL) && (item->valuestring[0] != '\0'))
         {
             if (cwk_path_is_relative(item->valuestring))
@@ -402,28 +418,89 @@ int process_config(const char *cf, int select)
                 override_out_dir[MAX_PATH_NAME - 1] = '\0';
             }
         }
-        // Process "authors" value. Leave empty if not specified.
-        item = cJSON_GetObjectItemCaseSensitive(config_json, "authors");
+        // Process optional "authors" value. To use author name from NSF file if unspecified.
+        item = cJSON_GetObjectItem(config_json, "authors");
         if (cJSON_IsString(item) && (item->valuestring != NULL) && (item->valuestring[0] != '\0'))
         {
             strncpy(override_authors, item->valuestring, MAX_AUTHOR_NAME);
             override_authors[MAX_AUTHOR_NAME - 1] = '\0';
         }
-        // Process "release_date" value. Leave empty if not specified.
-        item = cJSON_GetObjectItemCaseSensitive(config_json, "release_date");
+        // Process optional "release_date" value. To infer from copyright information from NSF file if unspecified.
+        item = cJSON_GetObjectItem(config_json, "release_date");
         if (cJSON_IsString(item) && (item->valuestring != NULL) && (item->valuestring[0] != '\0'))
         {
             strncpy(override_release_date, item->valuestring, MAX_RELEASE_DATE);
             override_release_date[MAX_RELEASE_DATE - 1] = '\0';
         }
+        // Process optional "max_track_length", or use default.
+        item = cJSON_GetObjectItem(config_json, "max_track_length");
+        if (cJSON_IsNumber(item) && (item->valueint > 0))
+        {
+            max_track_length = item->valuedouble;
+        }
+        else
+        {
+            max_track_length = NSFRIP_DEFAULT_MAX_TRACK_LENGTH;
+        }
+        // Process optional "max_records" value or use default.
+        item = cJSON_GetObjectItem(config_json, "max_records");
+        if (cJSON_IsNumber(item) && (item->valueint > 100))
+        {
+            max_records = item->valueint;
+        }
+        else
+        {
+            max_records = NSFRIP_DEFAULT_MAX_RECORDS;
+        }
+        // Process optional "silence_detection" or enable it
+        item = cJSON_GetObjectItem(config_json, "silence_detection");
+        if (cJSON_IsBool(item))
+        {
+            silence_detection = item->type & cJSON_True;
+        }
+        else
+        {
+            silence_detection = true;
+        }
+        // Process optional "min_silence" value or use default
+        item = cJSON_GetObjectItem(config_json, "min_silence");
+        if (cJSON_IsNumber(item) && item->valueint > 0)
+        {
+            min_silence = item->valuedouble;
+        }
+        else
+        {
+            min_silence = NSFRIP_DEFAULT_MIN_SLIENCE;
+        }
+        // Process optional "loop_detection" or enable it
+        item = cJSON_GetObjectItem(config_json, "loop_detection");
+        if (cJSON_IsBool(item))
+        {
+            loop_detection = item->type & cJSON_True;
+        }
+        else
+        {
+            loop_detection = true;
+        }
+        // Process optional "min_loop_records" value or use default
+        item = cJSON_GetObjectItem(config_json, "min_loop_records");
+        if (cJSON_IsNumber(item) && item->valueint > 50)
+        {
+            min_loop_records = item->valueint;
+        }
+        else
+        {
+            min_loop_records = NSFRIP_DEFAULT_MIN_LOOP_RECORDS;
+        }
+
         // Iteration on tracks
         const cJSON *track = NULL;
         const cJSON *tracks = NULL;
-        tracks = cJSON_GetObjectItemCaseSensitive(config_json, "tracks");
+        tracks = cJSON_GetObjectItem(config_json, "tracks");
         cJSON_ArrayForEach(track, tracks)
         {
             int index = -1;
-            const cJSON *index_json = cJSON_GetObjectItemCaseSensitive(track, "index");
+            const cJSON *index_json = cJSON_GetObjectItem(track, "index");
             if (cJSON_IsNumber(index_json))
             {
                 index = index_json->valueint;
@@ -436,18 +513,22 @@ int process_config(const char *cf, int select)
             {
                 if (select == 0 || index == select)
                 {
+                    convert_param_t params;
+                    char track_name[MAX_TRACK_NAME];
+                    char track_file_name[MAX_PATH_NAME];
                     track_name[0] = '\0';
                     track_file_name[0] = '\0';
-                    item = cJSON_GetObjectItemCaseSensitive(track, "name");
+                    memset(&params, 0, sizeof(convert_param_t));
+                    // If file_name is specified, use it as output file name.
+                    // If file_name is empty but track name is specified, use "dd trackname.vgm" as output file name.
+                    // Otherwise, use "Track dd" as track name and "dd.vgm" as output file name.
+                    item = cJSON_GetObjectItem(track, "name");
                     if (cJSON_IsString(item) && (item->valuestring != NULL) && (item->valuestring[0] != '\0'))
                     {
                         strncpy(track_name, item->valuestring, MAX_TRACK_NAME);
                         track_name[MAX_TRACK_NAME - 1] = '\0';
                     }
-                    // If file_name is specified, use it as output file name.
-                    // If file_name is empty but name is specified, use "dd trackname.vgm" as output file name.
-                    // Otherwise, use "Track dd" as track name and "Track dd.vgm" as output file name.
-                    item = cJSON_GetObjectItemCaseSensitive(track, "file_name");
+                    item = cJSON_GetObjectItem(track, "file_name");
                     if (cJSON_IsString(item) && (item->valuestring != NULL) && (item->valuestring[0] != '\0'))
                     {
                         strncpy(track_file_name, item->valuestring, MAX_PATH_NAME);
@@ -462,10 +543,64 @@ int process_config(const char *cf, int select)
                     {
                         snprintf(track_name, MAX_TRACK_NAME, "Track %02d", index);
                         track_name[MAX_TRACK_NAME - 1] = '\0';
-                        snprintf(track_file_name, MAX_PATH_NAME, "Track %02d.vgm", index);
+                        snprintf(track_file_name, MAX_PATH_NAME, "%02d.vgm", index);
                         track_file_name[MAX_PATH_NAME - 1] = '\0';
                     }
-                    convert_param_t params = { 0 };
+                    // per-track overrideable parameters
+                    item = cJSON_GetObjectItem(track, "max_track_length");
+                    if (cJSON_IsNumber(item) && (item->valueint > 0))
+                    {
+                        params.max_track_length = item->valuedouble;
+                    }
+                    else
+                    {
+                        params.max_track_length = max_track_length;
+                    }
+                    item = cJSON_GetObjectItem(track, "max_records");
+                    if (cJSON_IsNumber(item) && (item->valueint > 100))
+                    {
+                        params.max_records = item->valueint;
+                    }
+                    else
+                    {
+                        params.max_records = max_records;
+                    }
+                    item = cJSON_GetObjectItem(track, "silence_detection");
+                    if (cJSON_IsBool(item))
+                    {
+                        params.silence_detection = item->type & cJSON_True;
+                    }
+                    else
+                    {
+                        params.silence_detection = silence_detection;
+                    }
+                    item = cJSON_GetObjectItem(track, "min_silence");
+                    if (cJSON_IsNumber(item) && item->valueint > 0)
+                    {
+                        params.min_silence = item->valuedouble;
+                    }
+                    else
+                    {
+                        params.min_silence = min_silence;
+                    }
+                    item = cJSON_GetObjectItem(track, "loop_detection");
+                    if (cJSON_IsBool(item))
+                    {
+                        params.loop_detection = item->type & cJSON_True;
+                    }
+                    else
+                    {
+                        params.loop_detection = loop_detection;
+                    }
+                    item = cJSON_GetObjectItem(track, "min_loop_records");
+                    if (cJSON_IsNumber(item) && item->valueint > 50)
+                    {
+                        params.min_loop_records = item->valueint;
+                    }
+                    else
+                    {
+                        params.min_loop_records = min_loop_records;
+                    }
                     params.config_dir = base_dir;
                     params.nsf_path = nsf_path;
                     params.index = index;
@@ -475,6 +610,8 @@ int process_config(const char *cf, int select)
                     if (override_game_name[0]) params.override_game_name = override_game_name;
                     if (override_authors[0]) params.override_authors = override_authors;
                     if (override_release_date[0]) params.override_release_date = override_release_date;
+
+
                     if (convert_nsf(&params) != 0) break;
                 }
             }
