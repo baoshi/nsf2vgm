@@ -64,7 +64,7 @@ typedef struct convert_param_s
 } convert_param_t;
  
 
-static int convert_nsf(convert_param_t *cp)
+static int convert_nsf(convert_param_t *cp, bool warn_index_err)
 {
     int r = NSF2VGM_ERR_SUCCESS, t;
 
@@ -109,6 +109,10 @@ static int convert_nsf(convert_param_t *cp)
         if (cp->index > nsf->header->num_songs)
         {
             r = NSF2VGM_ERR_NOMORE;
+            if (warn_index_err)
+            {
+                PRINT_ERR("Track %d not found in the NSF file\n", cp->index);
+            }
             break;
         }
         // check meta inside nsf header vs. overrided parameters
@@ -611,8 +615,8 @@ int process_config(const char *cf, int select)
                     if (override_authors[0]) params.override_authors = override_authors;
                     if (override_release_date[0]) params.override_release_date = override_release_date;
 
-
-                    if (convert_nsf(&params) != 0) break;
+                    if (convert_nsf(&params, true) != 0)    // warn_index_err is true, incorrect index in json config will be warned
+                        break;
                 }
             }
         }

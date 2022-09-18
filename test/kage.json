@@ -43,7 +43,13 @@
       "index": "8",
       "loop_detection": false,
       "max_track_length": 51
+    },
+    {
+      "index": "12"
+    },
+    {
+      "index": "13"
     }
-
   ]
 }
+
