@@ -9,3 +9,4 @@ CMakeSettings.json
 .vscode/*
 !.vs/*.json
 !.vscode/*.json
+test/*/
