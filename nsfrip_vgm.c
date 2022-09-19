@@ -83,10 +83,36 @@ PACK(struct vgm_header_s
 typedef struct vgm_header_s vgm_header_t;
 
 
-int nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t *info, char const *vgm)
+static int find_gd3_string_storage(const char *str)
+{
+    int len = 0;
+    if (str && str[0])
+        len = strlen(str);
+    len = len + len + 2;    // 16 bit character + null termination
+    return len;
+}
+
+
+static int encode_gd3_string(const char *str, uint8_t *buf)
+{
+    uint16_t *buf16 = (uint16_t *)buf;
+    int len = 0, i;
+    if (str && str[0])
+        len = strlen(str);
+    for (i = 0; i < len; ++i)
+    {
+        buf16[i] = (uint16_t)str[i];
+    }
+    buf16[i] = 0;
+    return len + len + 2;
+}
+
+
+int nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t *meta, char const *vgm)
 {
     int r = RIP2VGM_ERR_SUCCESS;
     uint8_t *stream = NULL;
+    uint8_t *gd3 = NULL;
     FILE *fd = NULL;
     do
     {
@@ -166,14 +192,53 @@ int nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t 
             }
         }
         stream[stream_idx] = 0x66;   // eof of sound data
-        ++stream_idx;    
+        ++stream_idx;
+        // https://vgmrips.net/wiki/GD3_Specification
+        unsigned long gd3_len, gd3_idx;
+        gd3_len = 4 + 4 + 4;                                        //"Gd3 " + "00 01 00 00" + "ll ll ll ll"
+        gd3_len += find_gd3_string_storage(meta->track_name_en);    // Track name (Eng)
+        gd3_len += 2;                                               // Track name (Jap)
+        gd3_len += find_gd3_string_storage(meta->game_name_en);     // Game name (Eng)
+        gd3_len += 2;                                               // Game name (Jap)
+        gd3_len += find_gd3_string_storage(meta->system_name_en);   // System name (Eng)
+        gd3_len += 2;                                               // System name (Jap)
+        gd3_len += find_gd3_string_storage(meta->author_name_en);   // Author name (Eng)
+        gd3_len += 2;                                               // Author name (Jap)
+        gd3_len += find_gd3_string_storage(meta->release_date);     // Release date
+        gd3_len += find_gd3_string_storage(meta->creator_name);     // Creator
+        gd3_len += find_gd3_string_storage(meta->notes);            // Notes
+        gd3_len += 2;                                               // Final termination
+        gd3 = malloc(gd3_len);
+        if (NULL == gd3)
+        {
+            r = RIP2VGM_ERR_OUTOFMEMORY;
+            break;
+        }
+        gd3[0] = 0x47; gd3[1] = 0x64; gd3[2] = 0x33; gd3[3] = 0x20; // GD3 tag "Gd3 "
+        gd3[4] = 0x00; gd3[5] = 0x01; gd3[6] = 0x00; gd3[7] = 0x00; // Version 00 01 00 00
+        *(uint32_t *)(gd3 + 8) = (uint32_t)(gd3_len - 8);           // Length of the following data in bytes
+        gd3_idx = 12;
+        gd3_idx += encode_gd3_string(meta->track_name_en, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(NULL, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(meta->game_name_en, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(NULL, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(meta->system_name_en, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(NULL, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(meta->author_name_en, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(NULL, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(meta->release_date, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(meta->creator_name, gd3 + gd3_idx);
+        gd3_idx += encode_gd3_string(meta->notes, gd3 + gd3_idx);
+        gd3[gd3_idx] = 0;
+        gd3[gd3_idx + 1] = 0;
+        
         // vgm header
         vgm_header_t header;
         memset(&header, 0, sizeof(vgm_header_t));
         header.ident = 0x206d6756;
         header.version = 0x00000171;
-        header.eof_offset = sizeof(vgm_header_t) + stream_idx - 4;    // change with GD3 is added
-        header.gd3_offset = 0;
+        header.eof_offset = sizeof(vgm_header_t) + stream_idx + gd3_len - 4;
+        header.gd3_offset = sizeof(vgm_header_t) - 0x14 + stream_idx;
         header.data_offset = sizeof(vgm_header_t) - 0x34;
         header.total_samples = total_samples;
         if (loop_pos_rel > 0)
@@ -195,10 +260,12 @@ int nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t 
         }
         fwrite(&header, sizeof(vgm_header_t), 1, fd);
         fwrite(stream, stream_idx, 1, fd);
+        fwrite(gd3, gd3_len, 1, fd );
         fclose(fd);
         fd = NULL;
     } while (0);
     if (fd) fclose(fd);
+    if (gd3) free(gd3);
     if (stream) free(stream);
     return r;
 }
