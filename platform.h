@@ -22,6 +22,7 @@
 # define mkdir(d,m) _mkdir(d)
 #else
 # include <unistd.h>
+# include <sys/stat.h>
 #endif
 
 #define MAX_PATH_NAME   256

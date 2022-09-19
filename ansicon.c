@@ -8,13 +8,14 @@
 # include <termios.h>
 # include <unistd.h>
 # include <sys/ioctl.h> // for getkey
-# include <sys/types.h> // for kbhit()
-# include <sys/time.h>  // for kbhit()
+# include <sys/types.h> // for kbhit
+# include <sys/time.h>  // for kbhit
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "ansicon.h"
 
