@@ -15,10 +15,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 # include <direct.h>
 # define getcwd _getcwd
-# define strcmpi _strcmpi
+# define strcasecmp _strcmpi
 # define mkdir(d,m) _mkdir(d)
 #else
 # include <unistd.h>
