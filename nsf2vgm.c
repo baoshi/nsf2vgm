@@ -303,7 +303,7 @@ static int convert_nsf(convert_param_t *cp, bool warn_index_err)
             nsf_dump_rom(nsf, rip->rom_lo, rom_len, rom);
         }
         // create diretory if necessary
-        mkdir(out_dir, 0777);
+        mkdir(out_dir, 0755);
         vgm_meta_t meta = { 0 };
         meta.game_name_en = game_name;
         meta.track_name_en = cp->track_name;
@@ -666,16 +666,17 @@ int main(int argc, const char *argv[])
             free(cwd);
             infile = infile_abs;
         }
-        char *ext; size_t el;
+        const char *ext;
+        size_t el;
         if (cwk_path_get_extension(infile, &ext, &el))
         {
-            if (0 == strcmpi(ext + 1, "json"))
+            if (0 == strcasecmp(ext + 1, "json"))
             {
                 int select = 0;
                 if (argc == 3) select = atoi(argv[2]);
                 r = process_config(infile, select);
             }
-            else if (0 == strcmpi(ext + 1, "nsf"))
+            else if (0 == strcasecmp(ext + 1, "nsf"))
             {
 
             }
