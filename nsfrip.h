@@ -49,11 +49,16 @@ void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param);
 
 typedef struct vgm_meta_s
 {
-    char *name;
+    const char *game_name_en;
+    const char *track_name_en;
+    const char *system_name_en;
+    const char *author_name_en;
+    const char *release_date;
+    const char *creator_name;
+    const char *notes;
 } vgm_meta_t;
 
 int  nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t *info, char const *vgm);
-
 
 
 #ifdef __cplusplus

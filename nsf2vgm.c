@@ -18,13 +18,17 @@
 #define NSF2VGM_ERR_INSUFFICIENT_DATA   -6
 #define NSF2VGM_ERR_NOMORE              -7
 
-#define MAX_GAME_NAME       64
-#define MAX_AUTHOR_NAME     128
-#define MAX_RELEASE_DATE    16
-#define MAX_TRACK_NAME      64
+#define MAX_GAME_NAME                   64
+#define MAX_AUTHOR_NAME                 128
+#define MAX_RELEASE_DATE                16
+#define MAX_TRACK_NAME                  64
 
-#define NSF_SAMPLE_RATE             44100
-#define NSF_CACHE_SIZE              4096
+#define VGM_DEFAULT_SYSTEM_NAME         "Nintendo Entertainment System"
+#define VGM_DEFAULT_CREATOR             "nsf2vgm"
+#define VGM_DEFAULT_NOTES               "www.ba0sh1.com"
+
+#define NSF_SAMPLE_RATE                 44100
+#define NSF_CACHE_SIZE                  4096
 
 #define NSFRIP_DEFAULT_MAX_TRACK_LENGTH     120.0
 #define NSFRIP_DEFAULT_MAX_RECORDS          100000
@@ -301,7 +305,13 @@ static int convert_nsf(convert_param_t *cp, bool warn_index_err)
         // create diretory if necessary
         mkdir(out_dir, 0777);
         vgm_meta_t meta = { 0 };
-        meta.name = game_name;
+        meta.game_name_en = game_name;
+        meta.track_name_en = cp->track_name;
+        meta.author_name_en = authors;
+        meta.release_date = release_date;
+        meta.system_name_en = VGM_DEFAULT_SYSTEM_NAME;
+        meta.creator_name = VGM_DEFAULT_CREATOR;
+        meta.notes = VGM_DEFAULT_NOTES;
         r = nsfrip_export_vgm(rip, rom, rom_len, &meta, vgm_path);
         if (r != NSF2VGM_ERR_SUCCESS)
         {
