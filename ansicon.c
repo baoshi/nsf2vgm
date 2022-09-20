@@ -94,7 +94,6 @@ int ansicon_restore(void)
 }
 
 
-
 /**
  * @brief Get a charater without waiting on a Return
  * @details Windows has this functionality in conio.h
