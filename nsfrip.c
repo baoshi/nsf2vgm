@@ -212,7 +212,7 @@ void nsfrip_trim_silence(nsfrip_t* rip, uint32_t samples)
     unsigned long index = rip->records_len - 1;
     uint32_t total_waits = 0;
 
-    while (rip->records[index].reg_ops == 0)
+    while (total_waits < samples)
     {
         total_waits += rip->records[index].wait_samples;
         --index;
@@ -220,8 +220,10 @@ void nsfrip_trim_silence(nsfrip_t* rip, uint32_t samples)
     ++index;
     if (total_waits > samples)
     {
-        rip->records[index].wait_samples = total_waits - samples;
-        rip->total_samples -= samples;
+        unsigned long adjust = rip->records[index].wait_samples - (total_waits - samples);
+        rip->records[index].wait_samples -= adjust;
+        rip->records[index].samples -= adjust;
         rip->records_len = index + 1;
     }
+    rip->total_samples -= samples;
 }
