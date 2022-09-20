@@ -3,7 +3,8 @@
   "out_dir" : "",
   "game_name": "",
   "authors": "",
-  "max_track_length": 100.01,
+  "release_date": "1990/08/10",
+  "max_track_length": 120,
   "max_records": 100000,
   "silence_detection": true,
   "min_silence": 2,
@@ -12,43 +13,54 @@
   "tracks": [
     {
       "index": 1,
-      "name": "Opening",
-      "file_name": "01.vgm"
+      "name": "Opening"
     },
     {
-      "index": "2",
+      "index": 2,
       "name": "Stage Start"
     },
     {
-      "index": "3",
-      "file_name": "",
+      "index": 3,
+      "name": "Stage 1",
       "max_track_length": 200
     },
     {
-      "index": "4"
+      "index": 4,
+      "name": "Stage 2"
     },
     {
       "index": "5",
-      "loop_detection": false,
-      "max_track_length": 51
+      "name": "Stage 3",
+      "max_track_length": 100.802
     },
     {
-      "index": "6"
+      "index": "6",
+      "name": "Stage 4"
     },
     {
       "index": "7",
-      "max_track_length": 200
+      "name": "Stage 5"
     },
     {
       "index": "8",
-      "loop_detection": false,
-      "max_track_length": 51
+      "name": "Boss Fight"
     },
     {
-      "index": "12"
+      "index": "9",
+      "name": "Stage Clear"
     },
     {
-      "index": "13"
+      "index": "10",
+      "name": "Game Over"
+    },
+    {
+      "index": 11,
+      "name": "Ending",
+      "max_track_length": 300
+    },
+    {
+      "index": "12",
+      "name": "Final Boss"
     }
   ]
 }

@@ -54,7 +54,7 @@
             "program": "${command:cmake.launchTargetPath}",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "args": ["test/kage.json", "0"],
+            "args": ["test/ddragon.json", "9"],
             "console":"externalTerminal"
         }
     ]

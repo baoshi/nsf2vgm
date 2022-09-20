@@ -87,7 +87,7 @@ static int find_gd3_string_storage(const char *str)
 {
     int len = 0;
     if (str && str[0])
-        len = strlen(str);
+        len = (int)strlen(str);
     len = len + len + 2;    // 16 bit character + null termination
     return len;
 }
@@ -98,7 +98,7 @@ static int encode_gd3_string(const char *str, uint8_t *buf)
     uint16_t *buf16 = (uint16_t *)buf;
     int len = 0, i;
     if (str && str[0])
-        len = strlen(str);
+        len = (int)strlen(str);
     for (i = 0; i < len; ++i)
     {
         buf16[i] = (uint16_t)str[i];

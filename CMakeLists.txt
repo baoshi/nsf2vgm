@@ -12,7 +12,7 @@ endif()
 
 add_subdirectory(lib/cJSON)
 add_subdirectory(lib/cwalk)
-add_subdirectory(lib/rogueutil)
+
 
 add_executable(nsfdump 
 	blip_buf.c

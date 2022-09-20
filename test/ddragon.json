@@ -3,37 +3,67 @@
   "out_dir" : "",
   "game_name": "",
   "authors": "",
+  "release_date": "1988/04/08",
   "tracks": [
     {
-      "index": 1
+      "index": 1,
+      "name": "Main Title",
+      "max_track_length": 95.296,
+      "loop_detection": false
     },
     {
-      "index": 2
+      "index": 2,
+      "name": "Mission Screen",
+      "max_track_length": 65.5,
+      "loop_detection": false
     },
     {
-      "index": 3
+      "index": 3,
+      "name": "Mission 1 Billy & Jimmy",
+      "max_track_length": 153.742,
+      "loop_detection": false
     },
     {
-      "index": 4
+      "index": 4,
+      "name": "Mission 2 William",
+      "max_track_length": 81.9,
+      "loop_detection": false
     },
     {
-      "index": 5
+      "index": 5,
+      "name": "Mission 3 Ropper",
+      "max_track_length": 139.914,
+      "loop_detection": false
     },
     {
-      "index": 6
+      "index": 6,
+      "name": "Mission 4 Chin",
+      "max_track_length": 30.708,
+      "loop_detection": false
     },
     {
-      "index": 7
+      "index": 7,
+      "name": "Mission 5 Adobo",
+      "max_track_length": 62.702,
+      "loop_detection": false
     },
     {
-      "index": 8
+      "index": 8,
+      "name": "Mission 6 Linda",
+      "max_track_length": 54.589,
+      "loop_detection": false
     },
     {
-      "index": 9
+      "index": 9,
+      "name": "Game Over"
     },
     {
-      "index": 10
+      "index": 10,
+      "name": "Victory"
+    },
+    {
+      "index": 11,
+      "name": "Marion's been Saved!"
     }
-
   ]
 }

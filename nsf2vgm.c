@@ -50,7 +50,7 @@ static void usage()
 
 typedef struct convert_param_s
 {
-    const char *config_dir;             // directory where the json configuration is
+    const char *base_dir;               // directory where the json or nsf is found
     const char *nsf_path;               // absolute path of NSF file
     int index;                          // song index
     const char *track_name;
@@ -144,7 +144,7 @@ static int convert_nsf(convert_param_t *cp, bool warn_index_err)
         }
         else
         {
-            cwk_path_get_absolute(cp->config_dir, game_name, out_dir, MAX_PATH_NAME);
+            cwk_path_get_absolute(cp->base_dir, game_name, out_dir, MAX_PATH_NAME);
         }
         // output VGM file
         cwk_path_get_absolute(out_dir, cp->track_file_name, vgm_path, MAX_PATH_NAME);
@@ -329,7 +329,7 @@ static int convert_nsf(convert_param_t *cp, bool warn_index_err)
 }
 
 
-int process_config(const char *cf, int select)
+int process_json(const char *cf, int select)
 {
     int r = NSF2VGM_ERR_SUCCESS;
     
@@ -615,7 +615,7 @@ int process_config(const char *cf, int select)
                     {
                         params.min_loop_records = min_loop_records;
                     }
-                    params.config_dir = base_dir;
+                    params.base_dir = base_dir;
                     params.nsf_path = nsf_path;
                     params.index = index;
                     params.track_name = track_name;
@@ -625,7 +625,7 @@ int process_config(const char *cf, int select)
                     if (override_authors[0]) params.override_authors = override_authors;
                     if (override_release_date[0]) params.override_release_date = override_release_date;
 
-                    if (convert_nsf(&params, true) != 0)    // warn_index_err is true, incorrect index in json config will be warned
+                    if (convert_nsf(&params, true) != NSF2VGM_ERR_SUCCESS)    // warn_index_err is true, incorrect index in json config will be warned
                         break;
                 }
             }
@@ -638,6 +638,47 @@ int process_config(const char *cf, int select)
     return r;
 }
 
+
+int process_nsf(const char *nsf, int select)
+{
+    int r = NSF2VGM_ERR_SUCCESS;
+    char base_dir[MAX_PATH_NAME] = { '\0' };
+    do
+    {
+        cwk_path_change_basename(nsf, "", base_dir, MAX_PATH_NAME);
+        // Iterate all tracks (assume max 99)
+        for (int index = 1; index < 99; ++index)
+        {
+            if ((select != 0) && (index != select)) continue;
+            convert_param_t params;
+            char track_name[MAX_TRACK_NAME];
+            char track_file_name[MAX_PATH_NAME];
+            track_name[0] = '\0';
+            track_file_name[0] = '\0';
+            memset(&params, 0, sizeof(convert_param_t));
+            // No customization, use "Track xx" as track name and "xx.vgm" as file name
+            snprintf(track_name, MAX_TRACK_NAME, "Track %02d", index);
+            track_name[MAX_TRACK_NAME - 1] = '\0';
+            snprintf(track_file_name, MAX_PATH_NAME, "%02d.vgm", index);
+            track_file_name[MAX_PATH_NAME - 1] = '\0';
+            params.base_dir = base_dir;
+            params.nsf_path = nsf;
+            params.track_name = track_name;
+            params.index = index;
+            params.track_file_name = track_file_name;
+            params.max_track_length = NSFRIP_DEFAULT_MAX_TRACK_LENGTH;
+            params.max_records = NSFRIP_DEFAULT_MAX_RECORDS;
+            params.silence_detection = true;
+            params.min_silence = NSFRIP_DEFAULT_MIN_SLIENCE;
+            params.loop_detection = true;
+            params.min_loop_records = NSFRIP_DEFAULT_MIN_LOOP_RECORDS;
+            r = convert_nsf(&params, false);
+            if  (r != NSF2VGM_ERR_SUCCESS)
+                break;    
+        }
+    } while (0);
+    return r;   
+}
 
 
 int main(int argc, const char *argv[])
@@ -674,11 +715,13 @@ int main(int argc, const char *argv[])
             {
                 int select = 0;
                 if (argc == 3) select = atoi(argv[2]);
-                r = process_config(infile, select);
+                r = process_json(infile, select);
             }
             else if (0 == strcasecmp(ext + 1, "nsf"))
             {
-
+                int select = 0;
+                if (argc == 3) select = atoi(argv[2]);
+                r = process_nsf(infile, select);
             }
             else
             {
