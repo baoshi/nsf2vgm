@@ -178,7 +178,7 @@ int nsfrip_export_vgm(nsfrip_t *rip, uint8_t *rom, uint16_t rom_len, vgm_meta_t 
                     ++stream_idx;
                 }
             }
-            if (i == rip->loop_start_idx)
+            if ((i != 0) &&  (i == rip->loop_start_idx))
             {
                 loop_pos_rel = stream_idx;
                 loop_samples = 0;
