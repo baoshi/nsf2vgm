@@ -1,0 +1,96 @@
+{
+    "nsf_file": "pow.nsf",
+    "out_dir": "",
+    "game_name": "",
+    "authors": "Kazuhiro Nishida, Kikuko Hataya, Toshikazu Tanaka, Yoko Osaka",
+    "release_date": "1989/06/30",
+    "max_track_length": 200,
+    "max_records": 100000,
+    "silence_detection": true,
+    "min_silence": 2,
+    "loop_detection": true,
+    "min_loop_records": 1000,
+    "tracks": [
+        {
+            "index": 7,
+            "name": "Title Screen",
+            "file_name": "01 Title Screen.vgm"
+        },
+        {
+            "index": 1,
+            "name": "Level 1 Escape",
+            "file_name": "02 Level 1 Escape.vgm"
+        },
+        {
+            "index": 9,
+            "name": "In the Shed",
+            "file_name": "03 In the Shed.vgm"
+        },
+        {
+            "index": 4,
+            "name": "Helicopter Boss",
+            "file_name": "04 Helicopter Boss.vgm"
+        },
+        {
+            "index": 14,
+            "name": "Level Clear",
+            "file_name": "05 Level Clear.vgm"
+        },
+        {
+            "index": 13,
+            "name": "Level 2 Installation",
+            "file_name": "06 Level 2 Installation.vgm"
+        },
+        {
+            "index": 17,
+            "name": "In the APC",
+            "file_name": "07 In the APC.vgm"
+        },
+        {
+            "index": 12,
+            "name": "Shotgun Guy Boss",
+            "file_name": "08 Shotgun Guy Boss.vgm"
+        },
+        {
+            "index": 10,
+            "name": "Level 3 Jungle",
+            "file_name": "09 Level 3 Jungle.vgm",
+            "max_track_length": 200
+        },
+        {
+            "index": 16,
+            "name": "Fat Guy Boss",
+            "file_name": "10 Fat Guy Boss.vgm"
+        },
+        {
+            "index": 5,
+            "name": "Level 4 Enemy Base",
+            "file_name": "11 Level 4 Enemy Base.vgm"
+        },
+        {
+            "index": 11,
+            "name": "Tank Boss",
+            "file_name": "12 Tank Boss.vgm"
+        },
+        {
+            "index": 3,
+            "name": "Final Boss",
+            "file_name": "13 Final Boss.vgm"
+        },
+        {
+            "index": 8,
+            "name": "Congratulation",
+            "file_name": "14 Congratulation.vgm"
+        },
+        {
+            "index": 15,
+            "name": "Game Over",
+            "file_name": "15 Game Over.vgm"
+        },
+        {
+            "index": 6,
+            "name": "Unused 01",
+            "file_name": "16 Unused.vgm"
+        }
+    ]
+}

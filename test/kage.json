@@ -29,28 +29,29 @@
       "name": "Stage 2"
     },
     {
-      "index": "5",
+      "index": 5,
       "name": "Stage 3",
-      "max_track_length": 100.802
+      "max_track_length": 100.802,
+      "loop_detection": false
     },
     {
-      "index": "6",
+      "index": 6,
       "name": "Stage 4"
     },
     {
-      "index": "7",
+      "index": 7,
       "name": "Stage 5"
     },
     {
-      "index": "8",
+      "index": 8,
       "name": "Boss Fight"
     },
     {
-      "index": "9",
+      "index": 9,
       "name": "Stage Clear"
     },
     {
-      "index": "10",
+      "index": 10,
       "name": "Game Over"
     },
     {
@@ -59,7 +60,7 @@
       "max_track_length": 300
     },
     {
-      "index": "12",
+      "index": 12,
       "name": "Final Boss"
     }
   ]

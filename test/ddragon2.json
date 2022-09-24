@@ -1,0 +1,121 @@
+{
+    "nsf_file": "ddragon2.nsf",
+    "out_dir": "",
+    "game_name": "",
+    "authors": "",
+    "release_date": "1989/12/22",
+    "max_track_length": 180,
+    "max_records": 100000,
+    "silence_detection": true,
+    "min_silence": 2,
+    "loop_detection": true,
+    "min_loop_records": 1000,
+    "tracks": [
+        {
+            "index": 1,
+            "name": "Title",
+            "max_track_length": 117.458,
+            "loop_detection": false
+        },
+        {
+            "index": 2,
+            "name": "Onto the Next Area",
+            "max_track_length": 13.638,
+            "loop_detection": false
+        },
+        {
+            "index": 3,
+            "name": "Mission 1 - Into the Turf",
+            "max_track_length": 63.448,
+            "loop_detection": false
+        },
+        {
+            "index": 4,
+            "name": "A Tough Fight",
+            "max_track_length": 83.625,
+            "loop_detection": false
+        },
+        {
+            "index": 5,
+            "name": "Level Completed"
+        },
+        {
+            "index": 6,
+            "name": "Mission 2 - At the Heliport",
+            "max_track_length": 98.286,
+            "loop_detection": false
+        },
+        {
+            "index": 7,
+            "name": "Mission 3 - Battle in the Chopper",
+            "max_track_length": 46.520,
+            "loop_detection": false
+        },
+        {
+            "index": 8,
+            "name": "Mission 4 - Undersea Base",
+            "max_track_length": 27.705,
+            "loop_detection": false
+        },
+        {
+            "index": 9,
+            "name": "Mission 5 - Forest of Death",
+            "max_track_length": 71.103,
+            "loop_detection": false
+        },
+        {
+            "index": 10,
+            "name": "The Steam Tank Rolls In",
+            "max_track_length": 45.188,
+            "loop_detection": false
+        },
+        {
+            "index": 11,
+            "name": "Mission 6 - Mansion of Terror",
+            "max_track_length": 40.938,
+            "loop_detection": false
+        },
+        {
+            "index": 12,
+            "name": "Mission 7 - Trap Room",
+            "max_track_length": 39.306,
+            "loop_detection": false
+        },
+        {
+            "index": 13,
+            "name": "Mission 8 - The Double Illusion",
+            "max_track_length": 71.208,
+            "loop_detection": false
+        },
+        {
+            "index": 14,
+            "name": "Shadow Fight",
+            "max_track_length": 36.338,
+            "loop_detection": false
+        },
+        {
+            "index": 15,
+            "name": "Mission 9 - The Final Confrontation",
+            "max_track_length": 16.342,
+            "loop_detection": false
+        },
+        {
+            "index": 16,
+            "name": "The Fight Continues",
+            "max_track_length": 109.207,
+            "loop_detection": false
+        },
+        {
+            "index": 17,
+            "name": "Game Over"
+        },
+        {
+            "index": 18,
+            "name": "The Ending"
+        },
+        {
+            "index": 19,
+            "name": "Staff"
+        }
+    ]
+}
