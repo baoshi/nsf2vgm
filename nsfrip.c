@@ -205,9 +205,8 @@ void nsfrip_trim_loop(nsfrip_t *rip)
 }
 
 
-// If the rip was terminated because of silence detected, there will 
-// wait records at the end, trim those to 1 sample
-void nsfrip_trim_silence(nsfrip_t* rip, uint32_t samples)
+// Trip samples from end of rip structure
+void nsfrip_trim_silence(nsfrip_t *rip, uint32_t samples)
 {
     unsigned long index = rip->records_len - 1;
     uint32_t total_waits = 0;
@@ -223,7 +222,7 @@ void nsfrip_trim_silence(nsfrip_t* rip, uint32_t samples)
         unsigned long adjust = rip->records[index].wait_samples - (total_waits - samples);
         rip->records[index].wait_samples -= adjust;
         rip->records[index].samples -= adjust;
-        rip->records_len = index + 1;
     }
+    rip->records_len = index + 1;
     rip->total_samples -= samples;
 }
