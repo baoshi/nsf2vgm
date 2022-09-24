@@ -26,6 +26,10 @@ nsfrip_t * nsfrip_create(unsigned long max_records)
             rip->total_samples = 0;
             rip->rom_lo = 0xffff;
             rip->rom_hi = 0x0000;
+            rip->reg4012 = 0;
+            rip->reg4012_valid = false;
+            rip->reg4013 = 0;
+            rip->reg4013_valid = false;
             rip->wait_samples = 0;
             rip->records_len = 0;
             rip->max_records = max_records;
@@ -91,15 +95,6 @@ void nsfrip_dump(nsfrip_t *rip, unsigned long records)
 }
 
 
-void nsfrip_apu_read_rom(uint16_t addr, void *param)
-{
-    // Just keep track the range of ROM APU is reading so we can dump the rom later
-    nsfrip_t *rip = (nsfrip_t *)param;
-    if (addr > rip->rom_hi) rip->rom_hi = addr;
-    if (addr < rip->rom_lo) rip->rom_lo = addr;
-}
-
-
 void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param)
 {
     nsfrip_t *rip = (nsfrip_t *)param;
@@ -124,6 +119,26 @@ void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param)
             rip->wait_samples = 0;
             rip->records[rip->records_len].reg_ops = RECORD_WRITE_REG | (addr << 8) | val;
             ++(rip->records_len);
+            // Find DMC sample address based on write to $4012 and $4013
+            if (addr == 0x4012)
+            {
+                rip->reg4012 = val;
+                rip->reg4012_valid = true;
+            }
+            if (addr == 0x4013)
+            {
+                rip->reg4013 = val;
+                rip->reg4013_valid = true;
+            }
+            if (rip->reg4012_valid && rip->reg4013_valid)
+            {
+                uint16_t dmc_lo = 0xc000 + ((uint16_t)(rip->reg4012) << 6); // Sample address = %11AAAAAA.AA000000 = $C000 + (A * 64)
+                uint16_t dmc_hi = dmc_lo + ((uint16_t)(rip->reg4013) << 4); // Sample length = %LLLL.LLLL0001 = (L * 16) + 1 bytes
+                if (dmc_hi > rip->rom_hi) rip->rom_hi = dmc_hi;
+                if (dmc_lo < rip->rom_lo) rip->rom_lo = dmc_lo;
+                rip->reg4012_valid = false;
+                rip->reg4013_valid = false;
+            }
         }
     }
 }

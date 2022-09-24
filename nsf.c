@@ -131,18 +131,6 @@ static bool rom_read_bankswitched(uint16_t addr, uint8_t* rval, void* cookie, ui
 }
 
 
-static bool sniff_apu_read_rom_wrap(uint16_t addr, uint8_t* rval, void* cookie, uint8_t owner)
-{
-    nsf_t* c = (nsf_t*)cookie;
-    if (BUS_OWNER_APU == owner)
-    {
-        if (c->sniff_enabled && c->sniff_apu_read_rom)
-            c->sniff_apu_read_rom(addr, c->sniff_param);
-    }
-    return false;
-}
-
-
 static bool sniff_apu_write_reg_wrap(uint16_t addr, uint8_t val, void* cookie)
 {
     nsf_t* c = (nsf_t*)cookie;
@@ -415,7 +403,6 @@ int nsf_start_emu(nsf_t* c, nsfreader_t* reader, uint16_t max_sample_count, uint
     {
         // Non bank-switched NSF rom, music data from c->music is loaded to c->header->load_addr
         nesbus_add_read_handler(c->bus, "NSF_ROM", c->header->load_addr, c->header->load_addr + c->music_length - 1, rom_read_nonbankswitched, (void*)c);
-        nesbus_add_read_handler(c->bus, "NSF_ROM_SNF", c->header->load_addr, c->header->load_addr + c->music_length - 1, sniff_apu_read_rom_wrap, (void*)c);
     }
     else
     {
@@ -426,7 +413,6 @@ int nsf_start_emu(nsf_t* c, nsfreader_t* reader, uint16_t max_sample_count, uint
         }
         // Bank switched NSF rom can extend to full address range
         nesbus_add_read_handler(c->bus, "NSF_BANK", 0x8000, 0xFFFF, rom_read_bankswitched, (void*)c);
-        nesbus_add_read_handler(c->bus, "NSF_BANK_SNF", 0x8000, 0xFFFF, sniff_apu_read_rom_wrap, (void*)c);
         // Bank switch register
         nesbus_add_write_handler(c->bus, "NSF_BANK_REG", 0x5FF8, 0x5FFF, ram_write_bankswitch_reg, (void*)c);
     }
@@ -660,10 +646,9 @@ bool nsf_silence_detected(nsf_t *c)
 }
 
 
-void nsf_enable_apu_sniffing(nsf_t *c, bool enable, apu_read_rom_cb read, apu_write_reg_cb write, void *param)
+void nsf_enable_apu_sniffing(nsf_t *c, bool enable, apu_write_reg_cb write, void *param)
 {
     c->sniff_enabled = enable;
-    c->sniff_apu_read_rom = read;
     c->sniff_write_apu_reg = write;
     c->sniff_param = param;
 }

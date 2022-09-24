@@ -18,6 +18,10 @@ typedef struct nsfrip_s
     unsigned long total_samples;
     uint16_t rom_lo;
     uint16_t rom_hi;
+    uint8_t reg4012; // DMC sample address
+    bool reg4012_valid;
+    uint8_t reg4013; // DMC sample length
+    bool reg4013_valid;
     unsigned int wait_samples;
     nsfrip_record_t *records;
     unsigned long records_len;
@@ -37,7 +41,6 @@ void nsfrip_trim_loop(nsfrip_t *rip);
 void nsfrip_trim_silence(nsfrip_t *rip, uint32_t samples);
 
 // For use with nsfbus 
-void nsfrip_apu_read_rom(uint16_t addr, void *param);
 void nsfrip_apu_write_reg(uint16_t addr, uint8_t val, void *param);
 
 

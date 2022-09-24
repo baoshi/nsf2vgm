@@ -97,7 +97,6 @@ typedef struct nsf_s
     unsigned int slient_sample_count;
     // APU sniffing
     bool sniff_enabled;
-    apu_read_rom_cb sniff_apu_read_rom;
     apu_write_reg_cb sniff_write_apu_reg;
     void *sniff_param;
 } nsf_t;
@@ -113,7 +112,7 @@ int nsf_init_song(nsf_t *ctx, uint8_t song);
 int nsf_get_samples(nsf_t *ctx, uint16_t count, int16_t* samples);
 int nsf_enable_slience_detect(nsf_t *ctx, unsigned int samples);
 bool nsf_silence_detected(nsf_t *ctx);
-void nsf_enable_apu_sniffing(nsf_t *c, bool enable, apu_read_rom_cb read, apu_write_reg_cb write, void *param);
+void nsf_enable_apu_sniffing(nsf_t *c, bool enable, apu_write_reg_cb write, void *param);
 int nsf_dump_rom(nsf_t *ctx, int16_t addr, int16_t len, uint8_t *buf);
 
 #ifdef __cplusplus

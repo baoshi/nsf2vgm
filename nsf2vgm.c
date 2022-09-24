@@ -213,7 +213,7 @@ static int convert_nsf(convert_param_t *cp, bool warn_index_err)
         PRINT_INF("Track %02d:     %s\n", cp->index, cp->track_name);
         PRINT_INF("Authors:      %s\n", authors);
         PRINT_INF("Release date: %s\n", release_date);
-        nsf_enable_apu_sniffing(nsf, true, nsfrip_apu_read_rom, nsfrip_apu_write_reg, (void*)rip);
+        nsf_enable_apu_sniffing(nsf, true, nsfrip_apu_write_reg, (void*)rip);
         unsigned int silence_samples =  (unsigned int)(cp->min_silence * NSF_SAMPLE_RATE + 0.5);
         if (cp->silence_detection) 
             nsf_enable_slience_detect(nsf, silence_samples);
