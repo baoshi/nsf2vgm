@@ -14,29 +14,6 @@ add_subdirectory(lib/cJSON)
 add_subdirectory(lib/cwalk)
 
 
-add_executable(nsfdump 
-	blip_buf.c
-	nesapu.c
-	nescpu.c
-	nesbus.c
-	nesfloat.c
-	nsf.c
-	nsfreader_file.c
-	nsfdump.c)
-
-add_executable(nsftime
-	blip_buf.c
-	nesapu.c
-	nescpu.c
-	nesbus.c
-	nesfloat.c
-	nsf.c
-	nsfreader_file.c
-	nsfrip.c
-	nsfrip_vgm.c
-	nsftime.c
-)
-
 add_executable(nsf2vgm
 	blip_buf.c
 	nesapu.c
