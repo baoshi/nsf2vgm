@@ -373,7 +373,7 @@ int process_json(const char *cf, int select)
             PRINT_ERR("Out of memory\n");
             break;
         }
-        fread(jstr, sz, 1, jfd);
+        sz = (long)fread(jstr, 1, sz, jfd);
         jstr[sz] = '\0';
         fclose(jfd);    // jfd nolonger needed
         jfd = NULL;
